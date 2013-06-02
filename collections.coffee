@@ -1,6 +1,7 @@
 Backbone = require 'backbone4000'
 _ = require 'underscore'
 helpers = require 'helpers'
+RemoteModel = require('./remotemodel').RemoteModel
 
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds findModel method that automatically instantiates propper models for query results
