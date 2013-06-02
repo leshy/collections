@@ -1,0 +1,73 @@
+Backbone = require 'backbone4000'
+_ = require 'underscore'
+helpers = require 'helpers'
+
+# this can be mixed into a RemoteCollection or Collection itself
+# it adds findModel method that automatically instantiates propper models for query results
+ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
+    initialize: ->
+        @models = {}
+
+    defineModel: (name,superclasses...,definition) ->
+        if not definition.defaults? then definition.defaults = {}
+        definition.defaults.collection = this
+        definition.defaults._t = name
+        @models[name] = RemoteModel.extend4000.apply RemoteModel, superclasses.concat(definition)
+        
+    resolveModel: (entry) ->
+        keys = _.keys(@models)
+        if keys.length is 0 then throw "I don't have any models defined"
+        if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
+        if entry._t and tmp = @models[entry._t] then return tmp
+        throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
+
+    findModels: (pattern,limits,callback) ->
+        @find pattern,limits,(entry) =>
+            if not entry? then callback() else callback(new (@resolveModel(entry))(entry))
+
+    findModel: (pattern,callback) ->
+        @findOne pattern, (err,entry) =>
+            if (not entry? or err) then callback() else callback(undefined,new (@resolveModel(entry))(entry))
+
+    fcall: (name,args,pattern,realm,callback) ->
+        @findModels pattern, {}, (model) ->
+            if model? then model.remoteCallReceive name, args, realm, (err,data) -> callback err, data
+            else callback() # this is problematic, if function is async, empty callback() will be called before the functions have finished execution which will cause a premature reply.end()
+
+
+# this can be mixed into a RemoteCollection or Collection itself
+# it adds reference functionality
+
+# global dict holding all collections
+exports.collectionDict = {}
+
+UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000
+    collection: undefined
+    id: undefined
+    
+    toString: -> 'unresolved model ' + @get('id') + ' of collection ' + @get('collection').name()
+    
+    resolve: (callback) ->
+        collection = @get 'collection'
+        collection.findOne {id: @get 'id'}, (err,entry) =>
+            if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + collection.name())
+            else
+                @morph collection.resolveModel(entry), entry
+                helpers.cbc callback, undefined, @
+                
+    morph: (myclass,mydata) ->
+        @attributes = mydata
+        @__proto__ = myclass::
+
+    reference: -> { _r: @get('id'), _c: @get('collection').name() }
+
+
+ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
+    initialize: ->
+        @collectionDict = exports.collectionDict
+        @when 'name', (name) => @collectionDict[name] = @
+
+    getcollection: (name) -> @collectionDict[name]
+
+    unresolved: (id) -> new UnresolvedRemoteModel id: id, collection: @
+

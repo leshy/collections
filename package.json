@@ -1,0 +1,18 @@
+{
+    "name": "collections",
+    "version": "0.0.0",
+    "description": "",
+    "dependencies": {
+        "underscore": "underscore >= 1.3.x",
+        "backbone4000": "git://github.com/leshy/backbone4000.git",
+        "helpers": "git://github.com/leshy/nodejs-helpers.git",
+        "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git"
+    },
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": "",
+    "author": "lesh",
+    "license": "BSD"
+}
