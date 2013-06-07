@@ -59,17 +59,20 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
-            @collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)
-            @on 'change', (model,data) =>
-                @localChangePropagade(model,data)
-                @trigger 'anychange'
-                #@trigger 'anychange:... '
+            
+        @on 'change', (model,data) =>
+            @localChangePropagade(model,data)
+            @trigger 'anychange'
+            #@trigger 'anychange:... '
             
         @importReferences @attributes, (err,data) => @attributes = data
 
         # if we haven't been saved yet, we want to flush all our attributes when flush is called..
         if @get 'id' then @changes = {} else @changes = helpers.hashmap(@attributes, -> true)
 
+    subscribechanges: -> true
+        #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)
+        
     # get a reference for this model
     reference: (id=@get 'id') ->  { _r: id, _c: @collection.name() }
 
@@ -141,7 +144,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
     # or you can call set _clone(property)
     dirty: (attribute) -> @changes[attribute] = true
 
-    # I need a permissions implementation here..
+    # I need a permissions implementation here.. this calls a remote function
     localCallPropagade: (name,args,callback) ->
         @collection.fcall name, args, { id: @id }, callback
         
@@ -173,7 +176,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         model = @
         async.series _.map(@permissions[attribute], (permission) -> (callback) -> permission.match(model, realm, (err,data) -> if not err then callback(permission) else callback() )), (permission) ->
             if permission then callback(undefined,permission) else callback(attribute)
-        
+
     # looks for references to remote models and replaces them with object ids
     # what do we do if a reference object is not flushed? propagade flush call for now
     exportReferences: (data,callback) ->
@@ -233,9 +236,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
     render: (realm, callback) ->
         @exportReferences @attributes, (err,data) ->
             callback(err,data)
-
                         
     del: (callback) ->
         @trigger 'del', @
         if id = @get 'id' then @collection.remove {id: id}, callback else callback()
     
+

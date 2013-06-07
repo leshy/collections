@@ -79,14 +79,11 @@
         return _this.collection = collection;
       });
       this.when('id', function(id) {
-        _this.id = id;
-        _this.collection.subscribechanges({
-          id: id
-        }, _this.remoteChangeReceive.bind(_this));
-        return _this.on('change', function(model, data) {
-          _this.localChangePropagade(model, data);
-          return _this.trigger('anychange');
-        });
+        return _this.id = id;
+      });
+      this.on('change', function(model, data) {
+        _this.localChangePropagade(model, data);
+        return _this.trigger('anychange');
       });
       this.importReferences(this.attributes, function(err, data) {
         return _this.attributes = data;
@@ -98,6 +95,9 @@
           return true;
         });
       }
+    },
+    subscribechanges: function() {
+      return true;
     },
     reference: function(id) {
       if (id == null) {
