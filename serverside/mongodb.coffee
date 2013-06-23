@@ -55,5 +55,3 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         
         @collection.update @patternIn(pattern), update, callback
 
-
-

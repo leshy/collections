@@ -37,8 +37,8 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
                 if not (validator = @get 'matchRealm') then callback()
                 else
                     validator.feed realm, callback
-        ], callback     
-        
+        ], callback
+
 # knows about its collection, knows how to store/create itself and defines the permissions
 #
 # it logs changes of its attributes (localCallPropagade) 
@@ -59,7 +59,10 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
+            #unsubscribe = @collection.subscribe @, @remoteChangeReceive.bind(@)
+            #@once 'garbagecollect', unsubscribe
             
+            #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)            
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
             @trigger 'anychange'
@@ -69,9 +72,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
         # if we haven't been saved yet, we want to flush all our attributes when flush is called..
         if @get 'id' then @changes = {} else @changes = helpers.hashmap(@attributes, -> true)
-
-    subscribechanges: -> true
-        #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)
         
     # get a reference for this model
     reference: (id=@get 'id') ->  { _r: id, _c: @collection.name() }
@@ -231,14 +231,16 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
             if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
             else @collection.update {id: id}, changes, callback
 
-
     # this will have to go through some kind of READ permissions in the future..
     render: (realm, callback) ->
         @exportReferences @attributes, (err,data) ->
             callback(err,data)
-                        
+
+    garbagecollect: -> @trigger 'garbagecollect'
+                                
     del: (callback) ->
         @trigger 'del', @
+        @garbagecollect()
+        
         if id = @get 'id' then @collection.remove {id: id}, callback else callback()
     
-

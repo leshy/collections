@@ -96,9 +96,6 @@
         });
       }
     },
-    subscribechanges: function() {
-      return true;
-    },
     reference: function(id) {
       if (id == null) {
         id = this.get('id');
@@ -394,9 +391,13 @@
         return callback(err, data);
       });
     },
+    garbagecollect: function() {
+      return this.trigger('garbagecollect');
+    },
     del: function(callback) {
       var id;
       this.trigger('del', this);
+      this.garbagecollect();
       if (id = this.get('id')) {
         return this.collection.remove({
           id: id

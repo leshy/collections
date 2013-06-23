@@ -35,7 +35,6 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
             if model? then model.remoteCallReceive name, args, realm, (err,data) -> callback err, data
             else callback() # this is problematic, if function is async, empty callback() will be called before the functions have finished execution which will cause a premature reply.end()
 
-
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
 
