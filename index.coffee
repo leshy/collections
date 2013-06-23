@@ -35,15 +35,14 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
             if (not entry? or err) then callback() else callback(undefined,new (@resolveModel(entry))(entry))
 
     fcall: (name,args,pattern,realm,callback) ->
-        @findModels pattern, {}, (model) ->
+        @findModel pattern, (err,model) ->
             if model? then model.remoteCallReceive name, args, realm, (err,data) -> callback err, data
-            else callback() # this is problematic, if function is async, empty callback() will be called before the functions have finished execution which will cause a premature reply.end()
+            else callback 'model not found'
 
-# this can be mixed into a RemoteCollection or Collection itself
+# ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
 
-# global dict holding all collections
-exports.collectionDict = {}
+exports.collectionDict = {} # global dict holding all collections.. nasty but required to resolve references, shouldn't be global in theory but I can't invision needing to communicate multiple servers with same collection names right now.
 
 UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000
     collection: undefined
