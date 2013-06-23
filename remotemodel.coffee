@@ -4,7 +4,7 @@ helpers = require 'helpers'
 Validator = require 'validator2-extras'; v = Validator.v; Select = Validator.Select
 decorators = require 'decorators'; decorate = decorators.decorate;
 async = require 'async'
-collections = require './collections'
+collections = require './index'
 
 exports.definePermissions = definePermissions = (f) ->
     p = _.clone { standard:'permissions' }

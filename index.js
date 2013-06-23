@@ -9,7 +9,9 @@
 
   helpers = require('helpers');
 
-  RemoteModel = require('./remotemodel').RemoteModel;
+  _.extend(exports, require('./remotemodel'));
+
+  RemoteModel = exports.RemoteModel;
 
   ModelMixin = exports.ModelMixin = Backbone.Model.extend4000({
     initialize: function() {

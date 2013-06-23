@@ -20,7 +20,7 @@
 
   async = require('async');
 
-  collections = require('./collections');
+  collections = require('./index');
 
   exports.definePermissions = definePermissions = function(f) {
     var defattr, deffun, p, permissions;
