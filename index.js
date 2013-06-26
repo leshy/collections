@@ -125,6 +125,9 @@
         id: id,
         collection: this
       });
+    },
+    name: function() {
+      return this.get('name');
     }
   });
 

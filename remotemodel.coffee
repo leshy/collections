@@ -74,7 +74,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         if @get 'id' then @changes = {} else @changes = helpers.hashmap(@attributes, -> true)
         
     # get a reference for this model
-    reference: (id=@get 'id') ->  { _r: id, _c: @collection.name() }
+    reference: (id=@get 'id') -> { _r: id, _c: @collection.name() }
 
     depthfirst: (callback,target=@attributes) ->
         if target.constructor is Object or target.constructor is Array

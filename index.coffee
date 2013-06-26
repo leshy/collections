@@ -74,3 +74,4 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
 
     unresolved: (id) -> new UnresolvedRemoteModel id: id, collection: @
 
+    name: -> @get 'name'
