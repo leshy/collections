@@ -79,7 +79,8 @@
         return _this.collection = collection;
       });
       this.when('id', function(id) {
-        return _this.id = id;
+        _this.id = id;
+        return _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
       });
       this.on('change', function(model, data) {
         _this.localChangePropagade(model, data);

@@ -59,10 +59,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
+            @collection.subscribeModel id, @remoteChangeReceive.bind(@)
             #unsubscribe = @collection.subscribe @, @remoteChangeReceive.bind(@)
-            #@once 'garbagecollect', unsubscribe
+            #@once 'garbagecollect', unsubscribe            
+            #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)
             
-            #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)            
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
             @trigger 'anychange'
@@ -120,7 +121,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
             
             when 'update' then @importReferences change.update, (err,data) =>
                 @set data, { silent: true }
-
+            
                 helpers.hashmap change.update, (value,key) =>
                     @trigger 'remotechange:' + key, value
                     @trigger 'anychange:' + key, value
@@ -229,7 +230,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         @exportReferences changes, (err, changes) =>
             if helpers.isEmpty(changes) then helpers.cbc(callback); return
             if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
-            else @collection.update {id: id}, changes, callback
+            else @collection.update { id: id }, changes, callback
 
     # this will have to go through some kind of READ permissions in the future..
     render: (realm, callback) ->
