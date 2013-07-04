@@ -92,17 +92,15 @@
         if (!entry) {
           return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + collection.get('name'));
         } else {
-          _this.morph(collection.resolveModel(entry), _.extend(entry, {
-            collection: collection
-          }));
-          _this.initialize();
+          _this.morph(collection.resolveModel(entry), _.extend(_this.attributes, entry));
           return helpers.cbc(callback, void 0, _this);
         }
       });
     },
     morph: function(myclass, mydata) {
+      this.__proto__ = myclass.prototype;
       this.set(mydata);
-      return this.__proto__ = myclass.prototype;
+      return this.initialize();
     },
     reference: function() {
       return {

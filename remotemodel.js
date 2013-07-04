@@ -184,7 +184,6 @@
     },
     remoteChangeReceive: function(change) {
       var _this = this;
-      console.log("GOT REMOTE CHANGE", change);
       switch (change.action) {
         case 'update':
           return this.importReferences(change.update, function(err, data) {

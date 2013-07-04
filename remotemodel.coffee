@@ -118,8 +118,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
             _check target, callback
 
     remoteChangeReceive: (change) ->
-        console.log "GOT REMOTE CHANGE",change
-        
         switch change.action
             when 'update' then @importReferences change.update, (err,data) =>
                 @set data, { silent: true }
