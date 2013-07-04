@@ -80,7 +80,8 @@
       });
       this.when('id', function(id) {
         _this.id = id;
-        return _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
+        _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
+        return console.log("subscribemodel", id, _this.get('name'));
       });
       this.on('change', function(model, data) {
         _this.localChangePropagade(model, data);
@@ -183,6 +184,7 @@
     },
     remoteChangeReceive: function(change) {
       var _this = this;
+      console.log("GOT REMOTE CHANGE", change);
       switch (change.action) {
         case 'update':
           return this.importReferences(change.update, function(err, data) {

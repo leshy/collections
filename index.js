@@ -90,15 +90,18 @@
         id: this.get('id')
       }, function(err, entry) {
         if (!entry) {
-          return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + collection.name());
+          return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + collection.get('name'));
         } else {
-          _this.morph(collection.resolveModel(entry), entry);
+          _this.morph(collection.resolveModel(entry), _.extend(entry, {
+            collection: collection
+          }));
+          _this.initialize();
           return helpers.cbc(callback, void 0, _this);
         }
       });
     },
     morph: function(myclass, mydata) {
-      this.attributes = mydata;
+      this.set(mydata);
       return this.__proto__ = myclass.prototype;
     },
     reference: function() {

@@ -60,6 +60,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         @when 'id', (id) =>
             @id = id
             @collection.subscribeModel id, @remoteChangeReceive.bind(@)
+            console.log "subscribemodel", id, @get('name')
             #unsubscribe = @collection.subscribe @, @remoteChangeReceive.bind(@)
             #@once 'garbagecollect', unsubscribe            
             #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)
@@ -117,8 +118,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
             _check target, callback
 
     remoteChangeReceive: (change) ->
+        console.log "GOT REMOTE CHANGE",change
+        
         switch change.action
-            
             when 'update' then @importReferences change.update, (err,data) =>
                 @set data, { silent: true }
             
