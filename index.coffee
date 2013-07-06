@@ -2,9 +2,7 @@ Backbone = require 'backbone4000'
 _ = require 'underscore'
 helpers = require 'helpers'
 
-
 _.extend exports, require('./remotemodel')
-
 RemoteModel = exports.RemoteModel
 
 # this can be mixed into a RemoteCollection or Collection itself

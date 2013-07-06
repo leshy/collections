@@ -6,6 +6,8 @@ decorators = require 'decorators'; decorate = decorators.decorate;
 async = require 'async'
 collections = require './index'
 
+exports.settings = autosubscribe: true # do remotemodels automatically subscribe to remote changes?
+
 exports.definePermissions = definePermissions = (f) ->
     p = _.clone { standard:'permissions' }
 
@@ -59,22 +61,29 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
-            @collection.subscribeModel id, @remoteChangeReceive.bind(@)
-            console.log "subscribemodel", id, @get('name')
-            #unsubscribe = @collection.subscribe @, @remoteChangeReceive.bind(@)
-            #@once 'garbagecollect', unsubscribe            
-            #@collection.subscribechanges { id: id }, @remoteChangeReceive.bind(@)
-            
+            if exports.settings.autosubscribe then @subscribeModel id
+
+                                    
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
             @trigger 'anychange'
-            #@trigger 'anychange:... '
+            #@trigger 'anychange:... ' blah, later
             
         @importReferences @attributes, (err,data) => @attributes = data
 
         # if we haven't been saved yet, we want to flush all our attributes when flush is called..
         if @get 'id' then @changes = {} else @changes = helpers.hashmap(@attributes, -> true)
-        
+
+    subscribeModel: (id) ->
+        sub = =>
+            console.log "subscribemodel", @collection.get('name'), id, @get('name')
+            @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
+            @once 'del', => @unsubscribe()
+
+        if not id then @when 'id', (id) sub() else sub() # wait for id?
+    
+    unsubscribeModel: () -> if @unsubscribe then @unsubscribe()
+    
     # get a reference for this model
     reference: (id=@get 'id') -> { _r: id, _c: @collection.name() }
 
@@ -237,11 +246,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         @exportReferences @attributes, (err,data) ->
             callback(err,data)
 
-    garbagecollect: -> @trigger 'garbagecollect'
-                                
-    del: (callback) ->
-        @trigger 'del', @
-        @garbagecollect()
-        
+    del: (callback) -> @trigger 'del'
+
+    remove: (callback) ->
+        @del()
         if id = @get 'id' then @collection.remove {id: id}, callback else callback()
     

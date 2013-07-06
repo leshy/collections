@@ -22,6 +22,10 @@
 
   collections = require('./index');
 
+  exports.settings = {
+    autosubscribe: true
+  };
+
   exports.definePermissions = definePermissions = function(f) {
     var defattr, deffun, p, permissions;
     p = _.clone({
@@ -80,8 +84,9 @@
       });
       this.when('id', function(id) {
         _this.id = id;
-        _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
-        return console.log("subscribemodel", id, _this.get('name'));
+        if (exports.settings.autosubscribe) {
+          return _this.subscribeModel(id);
+        }
       });
       this.on('change', function(model, data) {
         _this.localChangePropagade(model, data);
@@ -96,6 +101,27 @@
         return this.changes = helpers.hashmap(this.attributes, function() {
           return true;
         });
+      }
+    },
+    subscribeModel: function(id) {
+      var sub,
+        _this = this;
+      sub = function() {
+        console.log("subscribemodel", _this.collection.get('name'), id, _this.get('name'));
+        _this.unsubscribe = _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
+        return _this.once('del', function() {
+          return _this.unsubscribe();
+        });
+      };
+      if (!id) {
+        return this.when('id', id(sub()));
+      } else {
+        return sub();
+      }
+    },
+    unsubscribeModel: function() {
+      if (this.unsubscribe) {
+        return this.unsubscribe();
       }
     },
     reference: function(id) {
@@ -393,13 +419,12 @@
         return callback(err, data);
       });
     },
-    garbagecollect: function() {
-      return this.trigger('garbagecollect');
-    },
     del: function(callback) {
+      return this.trigger('del');
+    },
+    remove: function(callback) {
       var id;
-      this.trigger('del', this);
-      this.garbagecollect();
+      this.del();
       if (id = this.get('id')) {
         return this.collection.remove({
           id: id
