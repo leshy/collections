@@ -428,9 +428,9 @@
       if (id = this.get('id')) {
         return this.collection.remove({
           id: id
-        }, callback);
+        }, helpers.cb(callback));
       } else {
-        return callback();
+        return helpers.cbc(callback);
       }
     }
   });

@@ -250,5 +250,5 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     remove: (callback) ->
         @del()
-        if id = @get 'id' then @collection.remove {id: id}, callback else callback()
+        if id = @get 'id' then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
     
