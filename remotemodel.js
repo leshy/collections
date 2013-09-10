@@ -410,7 +410,7 @@
         } else {
           return _this.collection.update({
             id: id
-          }, changes, callback);
+          }, changes, helpers.cb(callback));
         }
       });
     },

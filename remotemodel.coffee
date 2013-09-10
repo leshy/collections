@@ -239,7 +239,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         @exportReferences changes, (err, changes) =>
             if helpers.isEmpty(changes) then helpers.cbc(callback); return
             if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
-            else @collection.update { id: id }, changes, callback
+            else @collection.update { id: id }, changes, helpers.cb callback
 
     # this will have to go through some kind of READ permissions in the future..
     render: (realm, callback) ->
