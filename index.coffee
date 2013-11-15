@@ -25,8 +25,8 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
     findModels: (pattern,limits,callback) ->
-        @find pattern,limits,(entry) =>
-            if not entry? then callback() else callback(new (@resolveModel(entry))(entry))
+        @find pattern,limits,(err,entry) =>
+            if not entry? then callback(err) else callback(err, new (@resolveModel(entry))(entry))
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>

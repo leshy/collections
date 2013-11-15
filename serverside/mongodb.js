@@ -73,7 +73,7 @@
       var _this = this;
       return this.collection.find(this.patternIn(pattern), limits, function(err, cursor) {
         return cursor.each(function(err, entry) {
-          return callback(_this.patternOut(entry));
+          return callback(err, _this.patternOut(entry));
         });
       });
     },

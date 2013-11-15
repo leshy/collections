@@ -76,7 +76,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     subscribeModel: (id) ->
         sub = =>
-            console.log "subscribemodel", @collection.get('name'), id, @get('name')
+            #console.log "subscribemodel", @collection.get('name'), id, @get('name')
             @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
             @once 'del', => @unsubscribe()
 

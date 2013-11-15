@@ -43,11 +43,11 @@
     },
     findModels: function(pattern, limits, callback) {
       var _this = this;
-      return this.find(pattern, limits, function(entry) {
+      return this.find(pattern, limits, function(err, entry) {
         if (!(entry != null)) {
-          return callback();
+          return callback(err);
         } else {
-          return callback(new (_this.resolveModel(entry))(entry));
+          return callback(err, new (_this.resolveModel(entry))(entry));
         }
       });
     },

@@ -107,7 +107,6 @@
       var sub,
         _this = this;
       sub = function() {
-        console.log("subscribemodel", _this.collection.get('name'), id, _this.get('name'));
         _this.unsubscribe = _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
         return _this.once('del', function() {
           return _this.unsubscribe();
