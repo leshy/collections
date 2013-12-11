@@ -421,6 +421,9 @@
     del: function(callback) {
       return this.trigger('del');
     },
+    unsubscribe: function() {
+      return true;
+    },
     remove: function(callback) {
       var id;
       this.del();

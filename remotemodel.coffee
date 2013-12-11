@@ -248,6 +248,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     del: (callback) -> @trigger 'del'
 
+    unsubscribe: -> true
+    
     remove: (callback) ->
         @del()
         if id = @get 'id' then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
