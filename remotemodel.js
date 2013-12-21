@@ -109,7 +109,7 @@
       sub = function() {
         _this.unsubscribe = _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
         return _this.once('del', function() {
-          return _this.unsubscribe();
+          return _this.unsubscribeModel();
         });
       };
       if (!id) {
@@ -119,9 +119,7 @@
       }
     },
     unsubscribeModel: function() {
-      if (this.unsubscribe) {
-        return this.unsubscribe();
-      }
+      return true;
     },
     reference: function(id) {
       if (id == null) {

@@ -52,6 +52,6 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         
         if not helpers.isEmpty(set) then update['$set'] = set
         if not helpers.isEmpty(unset) then update['$unset'] = unset
-        
+
         @collection.update @patternIn(pattern), update, callback
 

@@ -78,11 +78,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         sub = =>
             #console.log "subscribemodel", @collection.get('name'), id, @get('name')
             @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
-            @once 'del', => @unsubscribe()
+            @once 'del', => @unsubscribeModel()
 
         if not id then @when 'id', (id) sub() else sub() # wait for id?
     
-    unsubscribeModel: () -> if @unsubscribe then @unsubscribe()
+    unsubscribeModel: () -> true
     
     # get a reference for this model
     reference: (id=@get 'id') -> { _r: id, _c: @collection.name() }
