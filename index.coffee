@@ -26,7 +26,7 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
 
     findModels: (pattern,limits,callback,callbackend) ->
         @find pattern,limits,((err,entry) =>
-            if not entry then console.log callback(err) else callback(err, new (@resolveModel(entry))(entry))),callbackend
+            if not entry then callback(err) else callback(err, new (@resolveModel(entry))(entry))),callbackend
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>

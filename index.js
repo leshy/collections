@@ -45,7 +45,7 @@
       var _this = this;
       return this.find(pattern, limits, (function(err, entry) {
         if (!entry) {
-          return console.log(callback(err));
+          return callback(err);
         } else {
           return callback(err, new (_this.resolveModel(entry))(entry));
         }
