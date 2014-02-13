@@ -246,7 +246,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         @exportReferences @attributes, (err,data) ->
             callback(err,data)
 
-    del: (callback) -> @trigger 'del'
+    del: (callback) ->
+        @trigger 'del', @
 
     unsubscribe: -> true
     

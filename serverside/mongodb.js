@@ -59,7 +59,7 @@
       return pattern;
     },
     patternOut: function(pattern) {
-      if (!(pattern != null)) {
+      if (!pattern) {
         return pattern;
       }
       pattern = _.extend({}, pattern);

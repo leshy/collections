@@ -417,7 +417,7 @@
       });
     },
     del: function(callback) {
-      return this.trigger('del');
+      return this.trigger('del', this);
     },
     unsubscribe: function() {
       return true;

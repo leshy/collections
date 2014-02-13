@@ -25,9 +25,9 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         if pattern.id? then pattern._id = pattern.id; delete pattern.id
         if pattern._id?.constructor is String then pattern._id = new BSON.ObjectID(pattern._id)
         pattern
-
+        
     patternOut: (pattern) ->
-        if not pattern? then return pattern
+        if not pattern then return pattern
         pattern = _.extend {},pattern
         if pattern._id? then pattern.id = String(pattern._id); delete pattern._id
         pattern
@@ -35,7 +35,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
     find: (pattern,limits,callback) ->
         @collection.find @patternIn(pattern), limits, (err,cursor) => cursor.each (err,entry) =>
             callback err, @patternOut(entry)
-
+        
     findOne: (pattern,callback) ->
         @collection.findOne @patternIn(pattern), (err,entry) =>
             callback undefined, @patternOut(entry)

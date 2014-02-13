@@ -22,15 +22,16 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         if keys.length is 0 then throw "I don't have any models defined"
         if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
         if entry._t and tmp = @models[entry._t] then return tmp
-        throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
+        return Backbone.Model
+        #throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
-    findModels: (pattern,limits,callback) ->
-        @find pattern,limits,(err,entry) =>
-            if not entry? then callback(err) else callback(err, new (@resolveModel(entry))(entry))
+    findModels: (pattern,limits,callback,callbackend) ->
+        @find pattern,limits,((err,entry) =>
+            if not entry? then callback(err) else callback(err, new (@resolveModel(entry))(entry))),callbackend
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>
-            if (not entry? or err) then callback() else callback(undefined,new (@resolveModel(entry))(entry))
+            if (not entry? or err) then callback(err) else callback(err, new (@resolveModel(entry))(entry))
 
     fcall: (name,args,pattern,realm,callback) ->
         @findModel pattern, (err,model) ->
@@ -60,7 +61,14 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
         @__proto__ = myclass::
         @set mydata
         @initialize()
-        
+
+    del: (callback) ->
+        @trigger 'del', @
+
+    remove: (callback) ->
+        @del()
+        if id = @get 'id' then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
+          
     reference: -> { _r: @get('id'), _c: @get('collection').name() }
 
 

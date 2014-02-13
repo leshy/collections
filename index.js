@@ -39,25 +39,25 @@
       if (entry._t && (tmp = this.models[entry._t])) {
         return tmp;
       }
-      throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(this.models).join(", ");
+      return Backbone.Model;
     },
-    findModels: function(pattern, limits, callback) {
+    findModels: function(pattern, limits, callback, callbackend) {
       var _this = this;
-      return this.find(pattern, limits, function(err, entry) {
+      return this.find(pattern, limits, (function(err, entry) {
         if (!(entry != null)) {
           return callback(err);
         } else {
           return callback(err, new (_this.resolveModel(entry))(entry));
         }
-      });
+      }), callbackend);
     },
     findModel: function(pattern, callback) {
       var _this = this;
       return this.findOne(pattern, function(err, entry) {
         if (!(entry != null) || err) {
-          return callback();
+          return callback(err);
         } else {
-          return callback(void 0, new (_this.resolveModel(entry))(entry));
+          return callback(err, new (_this.resolveModel(entry))(entry));
         }
       });
     },
@@ -101,6 +101,20 @@
       this.__proto__ = myclass.prototype;
       this.set(mydata);
       return this.initialize();
+    },
+    del: function(callback) {
+      return this.trigger('del', this);
+    },
+    remove: function(callback) {
+      var id;
+      this.del();
+      if (id = this.get('id')) {
+        return this.collection.remove({
+          id: id
+        }, helpers.cb(callback));
+      } else {
+        return helpers.cbc(callback);
+      }
     },
     reference: function() {
       return {
