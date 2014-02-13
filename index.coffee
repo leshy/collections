@@ -22,20 +22,19 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         if keys.length is 0 then throw "I don't have any models defined"
         if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
         if entry._t and tmp = @models[entry._t] then return tmp
-        return Backbone.Model
-        #throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
+        throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
     findModels: (pattern,limits,callback,callbackend) ->
         @find pattern,limits,((err,entry) =>
-            if not entry? then callback(err) else callback(err, new (@resolveModel(entry))(entry))),callbackend
+            if not entry then console.log callback(err) else callback(err, new (@resolveModel(entry))(entry))),callbackend
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>
-            if (not entry? or err) then callback(err) else callback(err, new (@resolveModel(entry))(entry))
+            if (not entry or err) then callback(err) else callback(err, new (@resolveModel(entry))(entry))
 
     fcall: (name,args,pattern,realm,callback) ->
         @findModel pattern, (err,model) ->
-            if model? then model.remoteCallReceive name, args, realm, (err,data) -> callback err, data
+            if model then model.remoteCallReceive name, args, realm, (err,data) -> callback err, data
             else callback 'model not found'
 
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself

@@ -39,13 +39,13 @@
       if (entry._t && (tmp = this.models[entry._t])) {
         return tmp;
       }
-      return Backbone.Model;
+      throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(this.models).join(", ");
     },
     findModels: function(pattern, limits, callback, callbackend) {
       var _this = this;
       return this.find(pattern, limits, (function(err, entry) {
-        if (!(entry != null)) {
-          return callback(err);
+        if (!entry) {
+          return console.log(callback(err));
         } else {
           return callback(err, new (_this.resolveModel(entry))(entry));
         }
@@ -54,7 +54,7 @@
     findModel: function(pattern, callback) {
       var _this = this;
       return this.findOne(pattern, function(err, entry) {
-        if (!(entry != null) || err) {
+        if (!entry || err) {
           return callback(err);
         } else {
           return callback(err, new (_this.resolveModel(entry))(entry));
@@ -63,7 +63,7 @@
     },
     fcall: function(name, args, pattern, realm, callback) {
       return this.findModel(pattern, function(err, model) {
-        if (model != null) {
+        if (model) {
           return model.remoteCallReceive(name, args, realm, function(err, data) {
             return callback(err, data);
           });
