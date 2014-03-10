@@ -10,6 +10,6 @@
 
   remotemodel.settings.autosubscribe = false;
 
-  exports.MongoCollection = mongo.MongoCollection.extend4000(collections.ModelMixin, collections.ReferenceMixin);
+  exports.MongoCollection = mongo.MongoCollection.extend4000(collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin);
 
 }).call(this);

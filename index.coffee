@@ -81,3 +81,20 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
     unresolved: (id) -> new UnresolvedRemoteModel id: id, collection: @
 
     name: -> @get 'name'
+
+RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
+    find: (args,limits,callback) ->
+        cb = (err,data) => callback err, data, { name: @name(), args: args, limits: limits }
+        @_super 'find', args, limits, cb
+
+    findOne: (args,callback) ->
+        cb = (err,data) => callback err, data, { name: @name(), args: args }
+        @_super 'findOne', args, cb
+
+    findModels: (args,limits,callback) ->
+        cb = (err,data) => callback err, data, { name: @name(), args: args, limits: limits }
+        @_super 'findModels', args, limits, cb
+            
+    findModel: (args,callback) ->
+        cb = (err,data) => callback err, data, { name: @name(), args: args }
+        @_super 'findModel', args, cb
