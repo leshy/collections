@@ -114,7 +114,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
             if @timeouts[name] then delete @timeouts[name]
             if @cache[uuid] then delete @cache[uuid]
         
-    clearCache: -> _.map @timeouts, (k,f) -> f()
+    clearCache: -> _.map @timeouts, (f) -> f()
 
     findOne: (args, callback) ->
         uuid = JSON.stringify { name: @name(), args: args }

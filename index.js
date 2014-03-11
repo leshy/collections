@@ -198,7 +198,7 @@
       });
     },
     clearCache: function() {
-      return _.map(this.timeouts, function(k, f) {
+      return _.map(this.timeouts, function(f) {
         return f();
       });
     },
