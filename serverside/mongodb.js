@@ -69,10 +69,13 @@
       }
       return pattern;
     },
-    find: function(pattern, limits, callback) {
+    find: function(pattern, limits, callback, callbackDone) {
       var _this = this;
       return this.collection.find(this.patternIn(pattern), limits, function(err, cursor) {
         return cursor.each(function(err, entry) {
+          if (!entry) {
+            return callbackDone();
+          }
           return callback(err, _this.patternOut(entry));
         });
       });

@@ -24,9 +24,10 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         if entry._t and tmp = @models[entry._t] then return tmp
         throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
-    findModels: (pattern,limits,callback,callbackend) ->
-        @find pattern,limits,((err,entry) =>
-            if not entry then callback(err) else callback(err, new (@resolveModel(entry))(entry))),callbackend
+    findModels: (pattern,limits,callback,callbackDone) ->
+        @find(pattern,limits,
+            (err,entry) => if err then return callback(err) else callback(err, new (@resolveModel(entry))(entry))
+            callbackDone)
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>
@@ -40,7 +41,7 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
 
-exports.collectionDict = {} # global dict holding all collections.. nasty but required to resolve references, shouldn't be global in theory but I can't invision needing to communicate multiple servers with same collection names right now.
+exports.collectionDict = {} # global dict holding all collections.. nasty but required to resolve references, shouldn't be global in theory but I can't invision the need to communicate multiple databases with same collection names right now.
 
 UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000
     collection: undefined
@@ -83,18 +84,86 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
     name: -> @get 'name'
 
 RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
-    find: (args,limits,callback) ->
-        cb = (err,data) => callback err, data, { name: @name(), args: args, limits: limits }
-        @_super 'find', args, limits, cb
+    find: (args,limits,callback,callbackDone) ->
+        uuid = JSON.stringify { name: @name(), args: args, limits: limits }
+        @_super( 'find', args, limits,
+            (err,data) => callback err, data, uuid
+            () => helpers.cbc callbackDone, undefined, undefined, uuid
+        )
 
     findOne: (args,callback) ->
-        cb = (err,data) => callback err, data, { name: @name(), args: args }
+        cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
         @_super 'findOne', args, cb
 
-    findModels: (args,limits,callback) ->
-        cb = (err,data) => callback err, data, { name: @name(), args: args, limits: limits }
-        @_super 'findModels', args, limits, cb
-            
-    findModel: (args,callback) ->
-        cb = (err,data) => callback err, data, { name: @name(), args: args }
-        @_super 'findModel', args, cb
+CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
+    timeout: helpers.Minute
+    
+    initialize: ->
+        @cache = {}
+        @timeouts = {}
+        
+    addToCache: (uuid,result,timeout) ->
+        if not timeout then timeout = @timeout
+        #console.log "adding to cache",uuid
+        @cache[uuid] = result
+        
+        name = new Date().getTime()
+        
+        @timeouts[name] = helpers.wait timeout, =>
+            #console.log "deleting from cache", uuid
+            if @timeouts[name] then delete @timeouts[name]
+            if @cache[uuid] then delete @cache[uuid]
+        
+    clearCache: -> _.map @timeouts, (f) -> f()
+
+    findOne: (args, callback) ->
+        uuid = JSON.stringify { name: @name(), args: args }
+
+        if loadCache = @cache[uuid]
+            #console.log "FINDONE CACHE   #{ uuid }"
+            return callback undefined, loadCache, uuid
+
+        #console.log "FINDONE REQUEST #{ uuid }"
+
+        @_super 'findOne', args, (err,data,uuid) =>
+            @addToCache uuid, data
+            callback err, data, uuid
+
+    find: (args, limits, callback, callbackDone) ->
+        if limits.nocache then return @_super 'find', args, limits, callback
+
+        uuid = JSON.stringify { name: @name(), args: args, limits: limits }
+
+        if loadCache = @cache[uuid]
+            #console.log "FIND CACHE      #{ uuid }"
+            _.map loadCache, (data) -> callback undefined, data, uuid
+            return helpers.cbc callbackDone, undefined, undefined, uuid
+
+        #console.log "FIND REQUEST    #{ uuid }"
+                        
+        cache = []
+        fail = false
+        @_super('find', args, limits,
+
+            (err,data,uuid) =>
+                if not fail
+                    if err then fail = true
+                    else cache.push data
+                    
+                callback err, data, uuid
+                
+            (err, done, uuid) =>
+                @addToCache uuid, cache
+                helpers.cbc callbackDone, err, done, uuid
+                
+            )
+                
+
+    update: (filter,update,callback) ->
+        @clearCache()
+        @_super 'update', filter, update, callback
+
+    insert: (data,callback) ->
+        @clearCache()
+        @_super 'update', data, callback
+        
