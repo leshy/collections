@@ -186,9 +186,11 @@
       if (!timeout) {
         timeout = this.timeout;
       }
+      console.log("adding to cache", uuid);
       this.cache[uuid] = result;
       name = new Date().getTime();
-      return this.timeouts[name] = helpers.wait(timeout, function() {
+      this.timeouts[name] = helpers.wait(timeout, function() {
+        console.log("deleting from cache", uuid);
         if (_this.timeouts[name]) {
           delete _this.timeouts[name];
         }
@@ -196,6 +198,7 @@
           return delete _this.cache[uuid];
         }
       });
+      return result;
     },
     clearCache: function() {
       return _.map(this.timeouts, function(f) {
@@ -210,12 +213,15 @@
         args: args
       });
       if (loadCache = this.cache[uuid]) {
-        return callback(void 0, loadCache, uuid);
+        callback(void 0, loadCache, uuid);
+        return uuid;
       }
-      return this._super('findOne', args, function(err, data, uuid) {
-        _this.addToCache(uuid, data);
-        return callback(err, data, uuid);
+      this._super('findOne', args, function(err, data, uuid) {
+        var reqCache;
+        reqCache = _this.addToCache(uuid, data);
+        return callback(err, data, uuid, reqCache);
       });
+      return uuid;
     },
     find: function(args, limits, callback, callbackDone) {
       var cache, fail, loadCache, uuid,
@@ -232,11 +238,12 @@
         _.map(loadCache, function(data) {
           return callback(void 0, data, uuid);
         });
-        return helpers.cbc(callbackDone, void 0, void 0, uuid);
+        helpers.cbc(callbackDone, void 0, void 0, uuid, loadCache);
+        return uuid;
       }
       cache = [];
       fail = false;
-      return this._super('find', args, limits, function(err, data, uuid) {
+      this._super('find', args, limits, function(err, data, uuid) {
         if (!fail) {
           if (err) {
             fail = true;
@@ -246,9 +253,11 @@
         }
         return callback(err, data, uuid);
       }, function(err, done, uuid) {
-        _this.addToCache(uuid, cache);
-        return helpers.cbc(callbackDone, err, done, uuid);
+        var reqCache;
+        reqCache = _this.addToCache(uuid, cache);
+        return helpers.cbc(callbackDone, err, done, uuid, reqCache);
       });
+      return uuid;
     },
     update: function(filter, update, callback) {
       this.clearCache();

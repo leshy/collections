@@ -106,15 +106,17 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         
     addToCache: (uuid,result,timeout) ->
         if not timeout then timeout = @timeout
-        #console.log "adding to cache",uuid
+        console.log "adding to cache",uuid
         @cache[uuid] = result
         
         name = new Date().getTime()
         
         @timeouts[name] = helpers.wait timeout, =>
-            #console.log "deleting from cache", uuid
+            console.log "deleting from cache", uuid
             if @timeouts[name] then delete @timeouts[name]
             if @cache[uuid] then delete @cache[uuid]
+
+        result
         
     clearCache: -> _.map @timeouts, (f) -> f()
 
@@ -123,13 +125,16 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
         if loadCache = @cache[uuid]
             #console.log "FINDONE CACHE   #{ uuid }"
-            return callback undefined, loadCache, uuid
+            callback undefined, loadCache, uuid
+            return uuid
 
         #console.log "FINDONE REQUEST #{ uuid }"
 
         @_super 'findOne', args, (err,data,uuid) =>
-            @addToCache uuid, data
-            callback err, data, uuid
+            reqCache = @addToCache uuid, data
+            callback err, data, uuid, reqCache
+            
+        return uuid
 
     find: (args, limits, callback, callbackDone) ->
         if limits.nocache then return @_super 'find', args, limits, callback
@@ -139,10 +144,11 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         if loadCache = @cache[uuid]
             #console.log "FIND CACHE      #{ uuid }"
             _.map loadCache, (data) -> callback undefined, data, uuid
-            return helpers.cbc callbackDone, undefined, undefined, uuid
-
+            helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
+            return uuid
+            
         #console.log "FIND REQUEST    #{ uuid }"
-                        
+                                                
         cache = []
         fail = false
         @_super('find', args, limits,
@@ -155,10 +161,12 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
                 callback err, data, uuid
                 
             (err, done, uuid) =>
-                @addToCache uuid, cache
-                helpers.cbc callbackDone, err, done, uuid
+                reqCache = @addToCache uuid, cache
+                helpers.cbc callbackDone, err, done, uuid, reqCache
                 
             )
+            
+        return uuid
                 
 
     update: (filter,update,callback) ->
