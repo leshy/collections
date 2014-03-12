@@ -269,9 +269,9 @@
       this.clearCache();
       return this._super('update', filter, update, callback);
     },
-    insert: function(data, callback) {
+    create: function(data, callback) {
       this.clearCache();
-      return this._super('update', data, callback);
+      return this._super('create', data, callback);
     }
   });
 

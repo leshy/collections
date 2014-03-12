@@ -176,7 +176,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         @clearCache()
         @_super 'update', filter, update, callback
 
-    insert: (data,callback) ->
+    create: (data,callback) ->
         @clearCache()
-        @_super 'update', data, callback
+        @_super 'create', data, callback
         
