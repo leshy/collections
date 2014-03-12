@@ -201,9 +201,11 @@
       return result;
     },
     clearCache: function() {
-      return _.map(this.timeouts, function(f) {
+      _.map(this.timeouts, function(f, name) {
         return f();
       });
+      this.timeouts = {};
+      return this.cache = {};
     },
     findOne: function(args, callback) {
       var loadCache, uuid,
@@ -213,9 +215,11 @@
         args: args
       });
       if (loadCache = this.cache[uuid]) {
+        console.log("FINDONE CACHE   " + uuid);
         callback(void 0, loadCache, uuid);
         return uuid;
       }
+      console.log("FINDONE REQUEST " + uuid);
       this._super('findOne', args, function(err, data, uuid) {
         var reqCache;
         reqCache = _this.addToCache(uuid, data);
@@ -235,12 +239,14 @@
         limits: limits
       });
       if (loadCache = this.cache[uuid]) {
+        console.log("FIND CACHE      " + uuid);
         _.map(loadCache, function(data) {
           return callback(void 0, data, uuid);
         });
         helpers.cbc(callbackDone, void 0, void 0, uuid, loadCache);
         return uuid;
       }
+      console.log("FIND REQUEST    " + uuid);
       cache = [];
       fail = false;
       this._super('find', args, limits, function(err, data, uuid) {
