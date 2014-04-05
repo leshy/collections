@@ -399,7 +399,7 @@
       return this.flushnow(callback);
     },
     flushnow: function(callback) {
-      var changes,
+      var changes, continue1,
         _this = this;
       changes = helpers.hashfilter(this.changes, function(value, property) {
         return _this.attributes[property];
@@ -413,33 +413,30 @@
           }
         });
       }
-      if (this.get('id')) {
-        continue1();
-      } else {
-        this.eventAsync('create', changes, continue1);
-      }
-      return {
-        continue1: function() {
-          var _this = this;
-          return this.exportReferences(changes, function(err, changes) {
-            var id;
-            if (helpers.isEmpty(changes)) {
-              helpers.cbc(callback);
-              return;
-            }
-            if (!(id = _this.get('id'))) {
-              return _this.collection.create(changes, function(err, id) {
-                _this.set('id', id);
-                return helpers.cbc(callback, err, id);
-              });
-            } else {
-              return _this.collection.update({
-                id: id
-              }, changes, helpers.cb(callback));
-            }
-          });
-        }
+      continue1 = function() {
+        return _this.exportReferences(changes, function(err, changes) {
+          var id;
+          if (helpers.isEmpty(changes)) {
+            helpers.cbc(callback);
+            return;
+          }
+          if (!(id = _this.get('id'))) {
+            return _this.collection.create(changes, function(err, id) {
+              _this.set('id', id);
+              return helpers.cbc(callback, err, id);
+            });
+          } else {
+            return _this.collection.update({
+              id: id
+            }, changes, helpers.cb(callback));
+          }
+        });
       };
+      if (this.get('id')) {
+        return continue1();
+      } else {
+        return this.eventAsync('create', changes, continue1());
+      }
     },
     render: function(realm, callback) {
       return this.exportReferences(this.attributes, function(err, data) {

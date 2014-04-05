@@ -48,10 +48,10 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
             
     createModel: (data,callback) ->
         try
-            newModel = new (@resolveModel(entry))(entry)
+            newModel = new (@resolveModel(data))(data)
         catch err
             return callback err
-            
+
         newModel.flush callback
 
     findModels: (pattern,limits,callback,callbackDone) ->

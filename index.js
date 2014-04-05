@@ -78,7 +78,7 @@
     createModel: function(data, callback) {
       var newModel;
       try {
-        newModel = new (this.resolveModel(entry))(entry);
+        newModel = new (this.resolveModel(data))(data);
       } catch (err) {
         return callback(err);
       }
