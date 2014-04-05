@@ -5,6 +5,9 @@ Validator = require 'validator2-extras'; v = Validator.v; Select = Validator.Sel
 decorators = require 'decorators'; decorate = decorators.decorate;
 async = require 'async'
 collections = require './index'
+subscriptionman2 = require 'subscriptionman2'
+
+sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
 
 settings = exports.settings = {}
 
@@ -48,7 +51,7 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
 # it will also subscribe to changes to its id on its collection, so it will update itself (remoteChangeReceive) with remote data
 #
 # it also has localCallPropagade and remoteCallReceive for remote function calling 
-RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
+RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     validator: v { collection: 'instance' }
 
     initialize: ->
@@ -240,21 +243,26 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     flushnow: (callback) ->
         changes = helpers.hashfilter @changes, (value,property) => @attributes[property]
-#        if settings.storePermissions
-#            @applyPermissions changes, exports.StoreRealm, (err,data) =>
-#                if not err then @set(data) else return helpers.cbc callback, err
-        @exportReferences changes, (err, changes) =>
-            if helpers.isEmpty(changes) then helpers.cbc(callback); return
-            if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
-            else @collection.update { id: id }, changes, helpers.cb callback
+
+        if settings.storePermissions
+            @applyPermissions changes, exports.StoreRealm, (err,data) =>
+                if not err then @set(data) else return helpers.cbc callback, err
+
+        if @get 'id' then continue1()
+        else @eventAsync 'create', changes, continue1
+        
+        continue1: -> 
+            @exportReferences changes, (err, changes) =>
+                if helpers.isEmpty(changes) then helpers.cbc(callback); return
+                if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
+                else @collection.update { id: id }, changes, helpers.cb callback
 
     # this will have to go through some kind of READ permissions in the future..
     render: (realm, callback) ->
         @exportReferences @attributes, (err,data) ->
             callback(err,data)
 
-    del: (callback) ->
-        @trigger 'del', @
+    del: (callback) -> @trigger 'del', @
 
     unsubscribe: -> true
     
