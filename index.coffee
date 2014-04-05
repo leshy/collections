@@ -5,6 +5,8 @@ helpers = require 'helpers'
 _.extend exports, require('./remotemodel')
 RemoteModel = exports.RemoteModel
 
+settings = exports.settings = {}
+
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds findModel method that automatically instantiates propper models for query results
 ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
@@ -23,6 +25,33 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
         if entry._t and tmp = @models[entry._t] then return tmp
         throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
+
+    updateModel: (pattern, data, callback) ->        
+        queue = new helpers.queue size: 3
+        
+        @findModels pattern, {}, (err,model) ->
+            queue.push model.id, (callback) ->
+                model.set data
+                model.flush callback
+            
+        queue.done callback
+
+
+    removeModel: (pattern, callback) ->        
+        queue = new helpers.queue size: 3
+        
+        @findModels pattern, {}, (err,model) ->
+            queue.push model.id, (callback) -> model.remove callback
+            
+        queue.done callback
+            
+    createModel: (data,callback) ->
+        try
+            newModel = new (@resolveModel(entry))(entry)
+        catch err
+            return callback err
+            
+        newModel.flush callback
 
     findModels: (pattern,limits,callback,callbackDone) ->
         @find(pattern,limits,
@@ -166,7 +195,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
             (err, done, uuid) =>
                 reqCache = @addToCache uuid, cache
                 helpers.cbc callbackDone, err, done, uuid, reqCache
-                
+
             )
             
         return uuid

@@ -6,11 +6,9 @@ decorators = require 'decorators'; decorate = decorators.decorate;
 async = require 'async'
 collections = require './index'
 
-exports.settings = autosubscribe: true # do remotemodels automatically subscribe to remote changes?
+settings = exports.settings = {}
 
 exports.definePermissions = definePermissions = (f) ->
-    p = _.clone { standard:'permissions' }
-
     permissions = {}
     
     defattr = (name, permission) ->
@@ -22,6 +20,8 @@ exports.definePermissions = definePermissions = (f) ->
     f(defattr, deffun)
 
     permissions
+
+SaveRealm = exports.SaveRealm = new Object()
 
 # defines which writes/fcalls to a model are allowed
 # and optionally parses the input data somehow (chew function)
@@ -72,10 +72,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         @importReferences @attributes, (err,data) => @attributes = data
 
         # if we haven't been saved yet, we want to flush all our attributes when flush is called..
-        if @get 'id' then @changes = {} else @changes = helpers.hashmap(@attributes, -> true)
+        if @get 'id' then @changes = {} else @changes = helpers.dictMap(@attributes, -> true)
 
     subscribeModel: (id) ->
         sub = =>
+            if not @collection.subscribeModel then return
             #console.log "subscribemodel", @collection.get('name'), id, @get('name')
             @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
             @once 'del', => @unsubscribeModel()
@@ -131,7 +132,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
             when 'update' then @importReferences change.update, (err,data) =>
                 @set data, { silent: true }
             
-                helpers.hashmap change.update, (value,key) =>
+                helpers.dictMap change.update, (value,key) =>
                     @trigger 'remotechange:' + key, value
                     @trigger 'anychange:' + key, value
                     
@@ -146,7 +147,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
     localChangePropagade: (model,data) ->
         change = model.changedAttributes()
         delete change.id
-        _.extend @changes, helpers.hashmap(change, -> true)
+        _.extend @changes, helpers.dictMap(change, -> true)
         # flush call would go here if it were throtteled properly and if autoflush is enabled
 
     # mark some attributes as dirty (to be saved)
@@ -171,20 +172,21 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     applyPermissions: (data,realm,callback) ->
         self = @
-        async.parallel helpers.hashmap(data, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) -> 
-            if err then callback "permission denied for attribute" + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err); return
-            async.parallel helpers.hashmap(permissions, (permission,attribute) -> (callback) -> permission.chew(data[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
+        async.parallel helpers.dictMap(data, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) -> 
+            if err then return callback "permission denied for attribute " + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
+            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(data[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
 
-
+    # why not just use applyPermissions with one key value pair in data?
     applyPermission: (attribute,value,realm,callback) ->
         @getPermission attribute, realm, (err,permission) =>
-            if err then callback(err); return
+            if err then helperc.cbc callback, err
             permission.chew value, { model: @, realm: realm, attribute: attribute }, callback
 
     # will find a first permission that matches this realm for this attribute and return it
     getPermission: (attribute,realm,callback) ->
         model = @
-        async.series _.map(@permissions[attribute], (permission) -> (callback) -> permission.match(model, realm, (err,data) -> if not err then callback(permission) else callback() )), (permission) ->
+        if not attributePermissions = @permissions?[attribute] then callback 'permission for attribute not defined'
+        async.series _.map(attributePermissions, (permission) -> (callback) -> permission.match(model, realm, (err,data) -> if not err then callback(permission) else callback() )), (permission) ->
             if permission then callback(undefined,permission) else callback(attribute)
 
     # looks for references to remote models and replaces them with object ids
@@ -235,7 +237,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     flushnow: (callback) ->
         changes = helpers.hashfilter @changes, (value,property) => @attributes[property]
-        #@applyPermissions changes, StoreRealm, (err,data) -> if not err then @set(data)
+        if settings.storePermissions
+            @applyPermissions changes, exports.StoreRealm, (err,data) =>
+                if not err then @set(data) else helpers.cbc callback, err
         @exportReferences changes, (err, changes) =>
             if helpers.isEmpty(changes) then helpers.cbc(callback); return
             if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
