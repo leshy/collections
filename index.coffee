@@ -26,14 +26,15 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         if entry._t and tmp = @models[entry._t] then return tmp
         throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
-    updateModel: (pattern, data, callback) ->        
+    updateModel: (pattern, data, realm, callback) ->        
         queue = new helpers.queue size: 3
         
         @findModels pattern, {}, (err,model) ->
             queue.push model.id, (callback) ->
-                model.set data
-                model.flush callback
-            
+                model.update data, realm, (err,data) =>
+                    if err then return callback err, data
+                    model.flush (err,fdata) -> callback err,data
+                    
         queue.done callback
 
 

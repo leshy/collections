@@ -43,15 +43,22 @@
       }
       throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(this.models).join(", ");
     },
-    updateModel: function(pattern, data, callback) {
+    updateModel: function(pattern, data, realm, callback) {
       var queue;
       queue = new helpers.queue({
         size: 3
       });
       this.findModels(pattern, {}, function(err, model) {
         return queue.push(model.id, function(callback) {
-          model.set(data);
-          return model.flush(callback);
+          var _this = this;
+          return model.update(data, realm, function(err, data) {
+            if (err) {
+              return callback(err, data);
+            }
+            return model.flush(function(err, fdata) {
+              return callback(err, data);
+            });
+          });
         });
       });
       return queue.done(callback);

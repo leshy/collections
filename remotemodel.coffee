@@ -28,17 +28,16 @@ SaveRealm = exports.SaveRealm = new Object()
 # permission can behave differently depending on a particular state of a model
 # (optional matchModel validator)
 Permission = exports.Permission = Validator.ValidatedModel.extend4000
-    validator: v { chew: 'Function' }
-    initialize: -> @chew = @get 'chew'
+    initialize: -> if chew = @get 'chew' then @chew = chew
+    chew: (value,data,callback) -> callback null, value
     match: (model,realm,callback) ->
         async.series [
             (callback) =>
                 if not (validator = @get 'matchModel') then callback()
-                else validator.feed model.attributes, callback
+                else v(validator).feed model.attributes, callback
             (callback) =>
                 if not (validator = @get 'matchRealm') then callback()
-                else
-                    validator.feed realm, callback
+                else v(validator).feed realm, callback
         ], callback
 
 # knows about its collection, knows how to store/create itself and defines the permissions
@@ -166,14 +165,18 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
         else
             @[name].apply @, args.concat(callback)
 
-    update: (data,realm) ->
+    update: (data,realm,callback) ->
         if not realm then @set(data)
-        else @applyPermissions data, realm, (err,data) -> if not err then @set(data)
+            
+        else @applyPermissions data, realm, (err,data) =>
+            if err then return helpers.cbc callback, err, data
+            @set(data)
+            helpers.cbc callback, err, data
 
     applyPermissions: (data,realm,callback) ->
         self = @
-        async.parallel helpers.dictMap(data, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) -> 
-            if err then return callback "permission denied for attribute " + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
+        async.parallel helpers.dictMap(data, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) ->
+            if err then return callback "permission denied for attribute" + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
             async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(data[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
 
     # why not just use applyPermissions with one key value pair in data?
@@ -185,7 +188,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
     # will find a first permission that matches this realm for this attribute and return it
     getPermission: (attribute,realm,callback) ->
         model = @
-        if not attributePermissions = @permissions?[attribute] then callback 'permission for attribute not defined'
+        if not attributePermissions = @permissions?[attribute] then return callback attribute + " (not defined)"
         async.series _.map(attributePermissions, (permission) -> (callback) -> permission.match(model, realm, (err,data) -> if not err then callback(permission) else callback() )), (permission) ->
             if permission then callback(undefined,permission) else callback(attribute)
 
@@ -237,9 +240,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000
 
     flushnow: (callback) ->
         changes = helpers.hashfilter @changes, (value,property) => @attributes[property]
-        if settings.storePermissions
-            @applyPermissions changes, exports.StoreRealm, (err,data) =>
-                if not err then @set(data) else helpers.cbc callback, err
+#        if settings.storePermissions
+#            @applyPermissions changes, exports.StoreRealm, (err,data) =>
+#                if not err then @set(data) else return helpers.cbc callback, err
         @exportReferences changes, (err, changes) =>
             if helpers.isEmpty(changes) then helpers.cbc(callback); return
             if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id

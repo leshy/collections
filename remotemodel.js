@@ -41,11 +41,14 @@
   SaveRealm = exports.SaveRealm = new Object();
 
   Permission = exports.Permission = Validator.ValidatedModel.extend4000({
-    validator: v({
-      chew: 'Function'
-    }),
     initialize: function() {
-      return this.chew = this.get('chew');
+      var chew;
+      if (chew = this.get('chew')) {
+        return this.chew = chew;
+      }
+    },
+    chew: function(value, data, callback) {
+      return callback(null, value);
     },
     match: function(model, realm, callback) {
       var _this = this;
@@ -55,14 +58,14 @@
           if (!(validator = _this.get('matchModel'))) {
             return callback();
           } else {
-            return validator.feed(model.attributes, callback);
+            return v(validator).feed(model.attributes, callback);
           }
         }, function(callback) {
           var validator;
           if (!(validator = _this.get('matchRealm'))) {
             return callback();
           } else {
-            return validator.feed(realm, callback);
+            return v(validator).feed(realm, callback);
           }
         }
       ], callback);
@@ -252,14 +255,17 @@
         return this[name].apply(this, args.concat(callback));
       }
     },
-    update: function(data, realm) {
+    update: function(data, realm, callback) {
+      var _this = this;
       if (!realm) {
         return this.set(data);
       } else {
         return this.applyPermissions(data, realm, function(err, data) {
-          if (!err) {
-            return this.set(data);
+          if (err) {
+            return helpers.cbc(callback, err, data);
           }
+          _this.set(data);
+          return helpers.cbc(callback, err, data);
         });
       }
     },
@@ -273,7 +279,7 @@
         };
       }), function(err, permissions) {
         if (err) {
-          return callback("permission denied for attribute " + (err.constructor === Object ? "s " + _.keys(err).join(', ') : " " + err));
+          return callback("permission denied for attribute" + (err.constructor === Object ? "s " + _.keys(err).join(', ') : " " + err));
         }
         return async.parallel(helpers.dictMap(permissions, function(permission, attribute) {
           return function(callback) {
@@ -303,7 +309,7 @@
       var attributePermissions, model, _ref;
       model = this;
       if (!(attributePermissions = (_ref = this.permissions) != null ? _ref[attribute] : void 0)) {
-        callback('permission for attribute not defined');
+        return callback(attribute + " (not defined)");
       }
       return async.series(_.map(attributePermissions, function(permission) {
         return function(callback) {
@@ -394,15 +400,6 @@
       changes = helpers.hashfilter(this.changes, function(value, property) {
         return _this.attributes[property];
       });
-      if (settings.storePermissions) {
-        this.applyPermissions(changes, exports.StoreRealm, function(err, data) {
-          if (!err) {
-            return _this.set(data);
-          } else {
-            return helpers.cbc(callback, err);
-          }
-        });
-      }
       return this.exportReferences(changes, function(err, changes) {
         var id;
         if (helpers.isEmpty(changes)) {
