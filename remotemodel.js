@@ -14,7 +14,7 @@
 
   Select = Validator.Select;
 
-  decorators = require('decorators');
+  decorators = require('decorators2');
 
   decorate = decorators.decorate;
 

@@ -7,7 +7,8 @@
         "backbone4000": "git://github.com/leshy/backbone4000.git",
         "helpers": "git://github.com/leshy/nodejs-helpers.git",
         "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git",
-        "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git"
+        "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
+	"decorators2": "git://github.com/leshy/nodejs-decorators2.git"
     },
     "main": "index.js",
     "scripts": {
