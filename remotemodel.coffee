@@ -239,7 +239,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # simplified for now, will reintroduce when done with model syncing
     # throttle decorator makes sure that we can apply bunch of changes in a series to an object, but the system requests a sync only once.
     #flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
-    flush: (callback) -> @flushnow(callback)
+    flush: (callback) ->
+        @flushnow(callback)
 
     flushnow: (callback) ->
         changes = helpers.hashfilter @changes, (value,property) => @attributes[property]
@@ -248,15 +249,19 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @applyPermissions changes, exports.StoreRealm, (err,data) =>
                 if not err then @set(data) else return helpers.cbc callback, err
 
-        continue1 = =>
+        continue1 = (err,subchanges) =>
+            subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
+            _.extend changes, subchanges
             @exportReferences changes, (err, changes) =>
                 if helpers.isEmpty(changes) then helpers.cbc(callback); return
-                if not id = @get 'id' then @collection.create changes, (err,id) => @set 'id', id; helpers.cbc callback, err, id
+                if not id = @get 'id' then @collection.create changes, (err,data) =>
+                    @set data
+                    helpers.cbc callback, err, _.extend(subchanges, data)
+                    
                 else @collection.update { id: id }, changes, helpers.cb callback
 
         if @get 'id' then continue1()
-        else @eventAsync 'create', changes, continue1()
-        
+        else @eventAsync 'create', changes, continue1
     # this will have to go through some kind of READ permissions in the future..
     render: (realm, callback) ->
         @exportReferences @attributes, (err,data) ->

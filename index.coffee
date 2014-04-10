@@ -41,10 +41,11 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
     removeModel: (pattern, callback) ->        
         queue = new helpers.queue size: 3
         
-        @findModels pattern, {}, (err,model) ->
-            queue.push model.id, (callback) -> model.remove callback
-            
-        queue.done callback
+        @findModels pattern, {},
+        ((err,model) ->
+            queue.push model.id, (callback) -> model.remove callback),
+        ((err,data) ->
+            queue.done callback )
             
     createModel: (data,callback) ->
         try
@@ -52,7 +53,7 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         catch err
             return callback err
 
-        newModel.flush callback
+        newModel.flush (err,data) -> callback err, data
 
     findModels: (pattern,limits,callback,callbackDone) ->
         @find(pattern,limits,
@@ -115,6 +116,7 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
 
     name: -> @get 'name'
 
+# required for caching
 RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
     find: (args,limits,callback,callbackDone) ->
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
@@ -127,6 +129,7 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
         cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
         @_super 'findOne', args, cb
 
+
 CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
     timeout: helpers.Minute
     
@@ -136,13 +139,13 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         
     addToCache: (uuid,result,timeout) ->
         if not timeout then timeout = @timeout
-        console.log "adding to cache",uuid
+#        console.log "adding to cache",uuid
         @cache[uuid] = result
         
         name = new Date().getTime()
         
         @timeouts[name] = helpers.wait timeout, =>
-            console.log "deleting from cache", uuid
+#            console.log "deleting from cache", uuid
             if @timeouts[name] then delete @timeouts[name]
             if @cache[uuid] then delete @cache[uuid]
 
@@ -157,11 +160,11 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         uuid = JSON.stringify { name: @name(), args: args }
 
         if loadCache = @cache[uuid]
-            console.log "FINDONE CACHE   #{ uuid }"
+#            console.log "FINDONE CACHE   #{ uuid }"
             callback undefined, loadCache, uuid
             return uuid
 
-        console.log "FINDONE REQUEST #{ uuid }"
+#        console.log "FINDONE REQUEST #{ uuid }"
 
         @_super 'findOne', args, (err,data,uuid) =>
             reqCache = @addToCache uuid, data
@@ -175,12 +178,12 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
 
         if loadCache = @cache[uuid]
-            console.log "FIND CACHE      #{ uuid }"
+#            console.log "FIND CACHE      #{ uuid }"
             _.map loadCache, (data) -> callback undefined, data, uuid
             helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
             return uuid
             
-        console.log "FIND REQUEST    #{ uuid }"
+#        console.log "FIND REQUEST    #{ uuid }"
                                                 
         cache = []
         fail = false

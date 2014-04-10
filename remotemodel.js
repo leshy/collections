@@ -413,7 +413,11 @@
           }
         });
       }
-      continue1 = function() {
+      continue1 = function(err, subchanges) {
+        subchanges = _.reduce(subchanges, (function(all, data) {
+          return _.extend(all, data);
+        }), {});
+        _.extend(changes, subchanges);
         return _this.exportReferences(changes, function(err, changes) {
           var id;
           if (helpers.isEmpty(changes)) {
@@ -421,9 +425,9 @@
             return;
           }
           if (!(id = _this.get('id'))) {
-            return _this.collection.create(changes, function(err, id) {
-              _this.set('id', id);
-              return helpers.cbc(callback, err, id);
+            return _this.collection.create(changes, function(err, data) {
+              _this.set(data);
+              return helpers.cbc(callback, err, _.extend(subchanges, data));
             });
           } else {
             return _this.collection.update({
@@ -435,7 +439,7 @@
       if (this.get('id')) {
         return continue1();
       } else {
-        return this.eventAsync('create', changes, continue1());
+        return this.eventAsync('create', changes, continue1);
       }
     },
     render: function(realm, callback) {

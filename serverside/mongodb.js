@@ -41,7 +41,9 @@
       entry = _.extend({}, entry);
       return this.collection.insert(entry, function(err, data) {
         if ((data != null ? data[0]._id : void 0)) {
-          data = String(data[0]._id);
+          data = {
+            id: String(data[0]._id)
+          };
         }
         return callback(err, data);
       });

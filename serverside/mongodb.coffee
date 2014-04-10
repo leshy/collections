@@ -16,7 +16,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         entry = _.extend({}, entry) # mongodb api will automatically append _.id to this dict, I want to avoid this..
         @collection.insert(entry,(err,data) ->
             if (data?[0]._id)
-                data = String(data[0]._id);
+                data = { id: String(data[0]._id) };
             callback err, data)
         
     # replaces a potential string id with BSON.ObjectID
@@ -35,9 +35,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
     find: (pattern,limits,callback,callbackDone) ->
         @collection.find @patternIn(pattern), limits, (err,cursor) =>
             cursor.each (err,entry) =>
-                if not entry then
-                    console.log "CALLBACKDONE"
-                    return callbackDone()
+                if not entry then return callbackDone()
                 callback err, @patternOut(entry)
         
     findOne: (pattern,callback) ->

@@ -68,12 +68,13 @@
       queue = new helpers.queue({
         size: 3
       });
-      this.findModels(pattern, {}, function(err, model) {
+      return this.findModels(pattern, {}, (function(err, model) {
         return queue.push(model.id, function(callback) {
           return model.remove(callback);
         });
-      });
-      return queue.done(callback);
+      }), (function(err, data) {
+        return queue.done(callback);
+      }));
     },
     createModel: function(data, callback) {
       var newModel;
@@ -82,7 +83,9 @@
       } catch (err) {
         return callback(err);
       }
-      return newModel.flush(callback);
+      return newModel.flush(function(err, data) {
+        return callback(err, data);
+      });
     },
     findModels: function(pattern, limits, callback, callbackDone) {
       var _this = this;
@@ -229,11 +232,9 @@
       if (!timeout) {
         timeout = this.timeout;
       }
-      console.log("adding to cache", uuid);
       this.cache[uuid] = result;
       name = new Date().getTime();
       this.timeouts[name] = helpers.wait(timeout, function() {
-        console.log("deleting from cache", uuid);
         if (_this.timeouts[name]) {
           delete _this.timeouts[name];
         }
@@ -258,11 +259,9 @@
         args: args
       });
       if (loadCache = this.cache[uuid]) {
-        console.log("FINDONE CACHE   " + uuid);
         callback(void 0, loadCache, uuid);
         return uuid;
       }
-      console.log("FINDONE REQUEST " + uuid);
       this._super('findOne', args, function(err, data, uuid) {
         var reqCache;
         reqCache = _this.addToCache(uuid, data);
@@ -282,14 +281,12 @@
         limits: limits
       });
       if (loadCache = this.cache[uuid]) {
-        console.log("FIND CACHE      " + uuid);
         _.map(loadCache, function(data) {
           return callback(void 0, data, uuid);
         });
         helpers.cbc(callbackDone, void 0, void 0, uuid, loadCache);
         return uuid;
       }
-      console.log("FIND REQUEST    " + uuid);
       cache = [];
       fail = false;
       this._super('find', args, limits, function(err, data, uuid) {
