@@ -309,6 +309,10 @@
       this.clearCache();
       return this._super('update', filter, update, callback);
     },
+    remove: function(data, callback) {
+      this.clearCache();
+      return this._super('remove', data, callback);
+    },
     create: function(data, callback) {
       this.clearCache();
       return this._super('create', data, callback);
