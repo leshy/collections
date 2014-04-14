@@ -34,6 +34,9 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
     initialize: -> if chew = @get 'chew' then @chew = chew
     chew: (value,data,callback) -> callback null, value
     match: (model,realm,callback) ->
+        matchModel = @get 'matchModel'
+        matchRealm = @get 'matchRealm'
+        if not matchModel and not matchRealm then return callback()
         async.series [
             (callback) =>
                 if not (validator = @get 'matchModel') then callback()
@@ -176,11 +179,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @set(data)
             helpers.cbc callback, err, data
 
-    applyPermissions: (data,realm,callback) ->
+    applyPermissions: (attrs,realm,callback) ->
         self = @
-        async.parallel helpers.dictMap(data, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) ->
+        async.parallel helpers.dictMap(attrs, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) ->
             if err then return callback "permission denied for attribute" + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
-            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(data[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
+            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(attrs[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
 
     # why not just use applyPermissions with one key value pair in data?
     applyPermission: (attribute,value,realm,callback) ->
@@ -250,6 +253,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                 if not err then @set(data) else return helpers.cbc callback, err
 
         continue1 = (err,subchanges) =>
+            if err? then return callback err
             subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
             _.extend changes, subchanges
             @exportReferences changes, (err, changes) =>
@@ -260,7 +264,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                     
                 else @collection.update { id: id }, changes, helpers.cb callback
 
-        if @get 'id' then continue1()
+        if @get 'id' then @eventAsync 'update', changes, continue1
         else @eventAsync 'create', changes, continue1
     # this will have to go through some kind of READ permissions in the future..
     render: (realm, callback) ->

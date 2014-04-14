@@ -76,15 +76,20 @@
         return queue.done(callback);
       }));
     },
-    createModel: function(data, callback) {
+    createModel: function(data, realm, callback) {
       var newModel;
       try {
-        newModel = new (this.resolveModel(data))(data);
+        newModel = new (this.resolveModel(data));
       } catch (err) {
         return callback(err);
       }
-      return newModel.flush(function(err, data) {
-        return callback(err, data);
+      return newModel.update(data, realm, function(err, data) {
+        if (err) {
+          return callback(err, data);
+        }
+        return newModel.flush(function(err, data) {
+          return callback(err, data);
+        });
       });
     },
     findModels: function(pattern, limits, callback, callbackDone) {

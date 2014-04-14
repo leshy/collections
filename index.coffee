@@ -47,13 +47,15 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
         ((err,data) ->
             queue.done callback )
             
-    createModel: (data,callback) ->
+    createModel: (data,realm,callback) ->
         try
-            newModel = new (@resolveModel(data))(data)
+            newModel = new (@resolveModel(data))
         catch err
             return callback err
 
-        newModel.flush (err,data) -> callback err, data
+        newModel.update data, realm, (err,data) -> 
+            if err then return callback err,data
+            newModel.flush (err,data) -> callback err, data
 
     findModels: (pattern,limits,callback,callbackDone) ->
         @find(pattern,limits,
@@ -174,11 +176,10 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
     find: (args, limits, callback, callbackDone) ->
         if limits.nocache then return @_super 'find', args, limits, callback
-
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
 
         if loadCache = @cache[uuid]
-#            console.log "FIND CACHE      #{ uuid }"
+            #console.log "FIND CACHE      #{ uuid }"
             _.map loadCache, (data) -> callback undefined, data, uuid
             helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
             return uuid

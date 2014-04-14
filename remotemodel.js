@@ -55,7 +55,13 @@
       return callback(null, value);
     },
     match: function(model, realm, callback) {
-      var _this = this;
+      var matchModel, matchRealm,
+        _this = this;
+      matchModel = this.get('matchModel');
+      matchRealm = this.get('matchRealm');
+      if (!matchModel && !matchRealm) {
+        return callback();
+      }
       return async.series([
         function(callback) {
           var validator;
@@ -273,11 +279,11 @@
         });
       }
     },
-    applyPermissions: function(data, realm, callback) {
+    applyPermissions: function(attrs, realm, callback) {
       var self,
         _this = this;
       self = this;
-      return async.parallel(helpers.dictMap(data, function(value, attribute) {
+      return async.parallel(helpers.dictMap(attrs, function(value, attribute) {
         return function(callback) {
           return _this.getPermission(attribute, realm, callback);
         };
@@ -287,7 +293,7 @@
         }
         return async.parallel(helpers.dictMap(permissions, function(permission, attribute) {
           return function(callback) {
-            return permission.chew(data[attribute], {
+            return permission.chew(attrs[attribute], {
               model: self,
               realm: realm,
               attribute: attribute
@@ -414,6 +420,9 @@
         });
       }
       continue1 = function(err, subchanges) {
+        if (err != null) {
+          return callback(err);
+        }
         subchanges = _.reduce(subchanges, (function(all, data) {
           return _.extend(all, data);
         }), {});
@@ -437,7 +446,7 @@
         });
       };
       if (this.get('id')) {
-        return continue1();
+        return this.eventAsync('update', changes, continue1);
       } else {
         return this.eventAsync('create', changes, continue1);
       }
