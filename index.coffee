@@ -38,7 +38,9 @@ ModelMixin = exports.ModelMixin = sman.extend4000
             queue.push model.id, (callback) ->
                 model.update data, realm, (err,data) =>
                     if err then return callback err, data
-                    model.flush (err,fdata) -> callback err,data
+                    model.flush (err,fdata) ->
+                        if not _.keys(data).length then data = undefined
+                        callback err,data
                     
         queue.done callback
 

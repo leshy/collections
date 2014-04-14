@@ -60,6 +60,9 @@
               return callback(err, data);
             }
             return model.flush(function(err, fdata) {
+              if (!_.keys(data).length) {
+                data = void 0;
+              }
               return callback(err, data);
             });
           });

@@ -259,8 +259,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @exportReferences changes, (err, changes) =>
                 if helpers.isEmpty(changes) then helpers.cbc(callback); return
                 if not id = @get 'id' then @collection.create changes, (err,data) =>
-                    @set data
+                    _.extend @attributes, data
                     helpers.cbc callback, err, _.extend(subchanges, data)
+                    @eventAsync 'post_create', @
                     
                 else @collection.update { id: id }, changes, helpers.cb callback
 

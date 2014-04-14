@@ -435,8 +435,9 @@
           }
           if (!(id = _this.get('id'))) {
             return _this.collection.create(changes, function(err, data) {
-              _this.set(data);
-              return helpers.cbc(callback, err, _.extend(subchanges, data));
+              _.extend(_this.attributes, data);
+              helpers.cbc(callback, err, _.extend(subchanges, data));
+              return _this.eventAsync('post_create', _this);
             });
           } else {
             return _this.collection.update({
