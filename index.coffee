@@ -7,9 +7,14 @@ RemoteModel = exports.RemoteModel
 
 settings = exports.settings = {}
 
+subscriptionman2 = require 'subscriptionman2'
+
+sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
+
+
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds findModel method that automatically instantiates propper models for query results
-ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
+ModelMixin = exports.ModelMixin = sman.extend4000
     initialize: ->
         @models = {}
 
@@ -48,14 +53,20 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000
             queue.done callback )
             
     createModel: (data,realm,callback) ->
-        try
-            newModel = new (@resolveModel(data))
-        catch err
-            return callback err
+        @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
+            if err then return callback err
+            subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
+            
+            try
+                newModel = new (@resolveModel(data))
+            catch err
+                return callback err
 
-        newModel.update data, realm, (err,data) -> 
-            if err then return callback err,data
-            newModel.flush (err,data) -> callback err, data
+            newModel.update data, realm, (err,data) ->
+                console.log err,data
+                if err then return callback err,data
+                newModel.set subchanges
+                newModel.flush (err,data) -> callback err, _.extend(subchanges, data)
 
     findModels: (pattern,limits,callback,callbackDone) ->
         @find(pattern,limits,
