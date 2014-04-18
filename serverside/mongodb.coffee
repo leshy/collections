@@ -31,13 +31,13 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         pattern = _.extend {},pattern
         if pattern._id? then pattern.id = String(pattern._id); delete pattern._id
         pattern
-            
+    
     find: (pattern,limits,callback,callbackDone) ->
         @collection.find @patternIn(pattern), limits, (err,cursor) =>
             cursor.each (err,entry) =>
                 if not entry then return callbackDone()
                 callback err, @patternOut(entry)
-        
+    
     findOne: (pattern,callback) ->
         @collection.findOne @patternIn(pattern), (err,entry) =>
             callback undefined, @patternOut(entry)

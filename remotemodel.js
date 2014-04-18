@@ -435,7 +435,7 @@
           }
           if (!(id = _this.get('id'))) {
             return _this.collection.create(changes, function(err, data) {
-              _.extend(_this.attributes, data);
+              _.extend(_this.attributes, _.extend(subchanges, data));
               helpers.cbc(callback, err, _.extend(subchanges, data));
               return _this.eventAsync('post_create', _this);
             });

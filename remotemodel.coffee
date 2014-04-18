@@ -239,7 +239,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             return undefined
         @asyncDepthfirst _matchf, callback, true, true, data
                 
-    # simplified for now, will reintroduce when done with model syncing
+    # simplified for now, will reintroduce when done
+    # with model syncing
     # throttle decorator makes sure that we can apply bunch of changes in a series to an object, but the system requests a sync only once.
     #flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
     flush: (callback) ->
@@ -259,7 +260,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @exportReferences changes, (err, changes) =>
                 if helpers.isEmpty(changes) then helpers.cbc(callback); return
                 if not id = @get 'id' then @collection.create changes, (err,data) =>
-                    _.extend @attributes, data
+                    _.extend @attributes, _.extend(subchanges,data)
                     helpers.cbc callback, err, _.extend(subchanges, data)
                     @eventAsync 'post_create', @
                     
