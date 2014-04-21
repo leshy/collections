@@ -84,35 +84,21 @@
       }));
     },
     createModel: function(data, realm, callback) {
-      var _this = this;
-      return this.eventAsync('create', {
-        data: data,
-        realm: realm
-      }, function(err, subchanges) {
-        var newModel;
-        if (subchanges == null) {
-          subchanges = {};
-        }
+      var newModel;
+      try {
+        newModel = new (this.resolveModel(data));
+      } catch (err) {
+        return callback(err);
+      }
+      if (data.id) {
+        return callback("can't call create and specify id");
+      }
+      return newModel.update(data, realm, function(err, data) {
         if (err) {
-          return callback(err);
+          return callback(err, data);
         }
-        subchanges = _.reduce(subchanges, (function(all, data) {
-          return _.extend(all, data);
-        }), {});
-        try {
-          newModel = new (_this.resolveModel(data));
-        } catch (err) {
-          return callback(err);
-        }
-        return newModel.update(data, realm, function(err, data) {
-          console.log(err, data);
-          if (err) {
-            return callback(err, data);
-          }
-          newModel.set(subchanges);
-          return newModel.flush(function(err, data) {
-            return callback(err, _.extend(subchanges, data));
-          });
+        return newModel.flush(function(err, data) {
+          return callback(err, data);
         });
       });
     },
