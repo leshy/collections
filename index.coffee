@@ -67,7 +67,6 @@ ModelMixin = exports.ModelMixin = sman.extend4000
                 return callback err
 
             newModel.update data, realm, (err,data) ->
-                #console.log err,data
                 if err then return callback err,data
                 newModel.set subchanges
                 newModel.flush (err,data) -> callback err, _.extend(subchanges, data)
