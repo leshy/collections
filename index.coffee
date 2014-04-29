@@ -128,6 +128,19 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
 
     getcollection: (name) -> @collectionDict[name]
 
+    # will translate a model to its reference its found in find arguments
+    find: (args,limits,callback,callbackDone) ->
+        RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
+            if err then return callbackDone err
+            @_super( 'find', args, limits, callback, callbackDone)
+            
+    # will translate a model to its reference its found in findOne arguments
+    findOne: (args,callback) ->
+        RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
+            if err then return callbackDone err
+            @_super( 'findOne', args, callback)
+
+
     unresolved: (id) -> new UnresolvedRemoteModel id: id, collection: @
 
     name: -> @get 'name'

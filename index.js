@@ -212,6 +212,24 @@
     getcollection: function(name) {
       return this.collectionDict[name];
     },
+    find: function(args, limits, callback, callbackDone) {
+      var _this = this;
+      return RemoteModel.prototype.exportReferences.call(RemoteModel.prototype, args, function(err, args) {
+        if (err) {
+          return callbackDone(err);
+        }
+        return _this._super('find', args, limits, callback, callbackDone);
+      });
+    },
+    findOne: function(args, callback) {
+      var _this = this;
+      return RemoteModel.prototype.exportReferences.call(RemoteModel.prototype, args, function(err, args) {
+        if (err) {
+          return callbackDone(err);
+        }
+        return _this._super('findOne', args, callback);
+      });
+    },
     unresolved: function(id) {
       return new UnresolvedRemoteModel({
         id: id,
