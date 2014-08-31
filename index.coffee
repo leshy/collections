@@ -97,7 +97,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
     id: undefined
     
     toString: -> 'unresolved model ' + @get('id') + ' of collection ' + @get('collection').name()
-    
+
     resolve: (callback) ->
         collection = @get 'collection'
         collection.findOne {id: @get 'id'}, (err,entry) =>

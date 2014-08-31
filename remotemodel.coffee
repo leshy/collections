@@ -159,6 +159,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # needs to be done explicitly when changing dictionaries or arrays in attributes as change() won't catch that
     # or you can call set _clone(property)
     dirty: (attribute) -> @changes[attribute] = true
+    touch: (attribute) -> @changes[attribute] = true
 
     # I need a permissions implementation here.. this calls a remote function
     localCallPropagade: (name,args,callback) ->
@@ -248,6 +249,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
     flushnow: (callback) ->
         changes = helpers.hashfilter @changes, (value,property) => @attributes[property]
+        @changes = {}
+
 
         if settings.storePermissions
             @applyPermissions changes, exports.StoreRealm, (err,data) =>
@@ -256,7 +259,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         continue1 = (err,subchanges) =>
             if err? then return callback err
             subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
+
             _.extend changes, subchanges
+            
             @exportReferences changes, (err, changes) =>
                 if helpers.isEmpty(changes) then helpers.cbc(callback); return
                 if not id = @get 'id' then @collection.create changes, (err,data) =>
@@ -264,7 +269,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                     helpers.cbc callback, err, _.extend(subchanges, data)
                     @eventAsync 'post_create', @
                     
-                else @collection.update { id: id }, changes, helpers.cb callback
+                else
+                    @collection.update { id: id }, changes, helpers.cb callback
 
         if @get 'id' then @eventAsync 'update', changes, continue1
         else @eventAsync 'create', changes, continue1
