@@ -1,16 +1,13 @@
 Backbone = require 'backbone4000'
 _ = require 'underscore'
 helpers = require 'helpers'
-
 _.extend exports, require('./remotemodel')
 RemoteModel = exports.RemoteModel
+subscriptionman2 = require 'subscriptionman2'
 
 settings = exports.settings = {}
 
-subscriptionman2 = require 'subscriptionman2'
-
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
-
 
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds findModel method that automatically instantiates propper models for query results
@@ -32,8 +29,7 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
     updateModel: (pattern, data, realm, callback) ->        
-        queue = new helpers.queue size: 3
-        
+        queue = new helpers.queue size: 3        
         @findModels pattern, {}, (err,model) ->
             queue.push model.id, (callback) ->
                 model.update data, realm, (err,data) =>
@@ -45,9 +41,8 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         queue.done callback
 
 
-    removeModel: (pattern, callback) ->        
-        queue = new helpers.queue size: 3
-        
+    removeModel: (pattern, callback) ->
+        queue = new helpers.queue size: 3        
         @findModels pattern, {},
         ((err,model) ->
             queue.push model.id, (callback) -> model.remove callback),
