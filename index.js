@@ -316,6 +316,8 @@
     },
     findOne: function(args, callback) {
       var loadCache, uuid;
+        console.log("stringify", name, args);
+
       uuid = JSON.stringify({
         name: this.name(),
         args: args
