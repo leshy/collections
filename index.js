@@ -323,6 +323,7 @@
         name: this.name(),
         args: args
       });
+      console.log("will cache stringify", this.name(), args);
       if (loadCache = this.cache[uuid]) {
         callback(void 0, loadCache, uuid);
         return uuid;
@@ -341,6 +342,7 @@
       if (limits.nocache) {
         return this._super('find', args, limits, callback);
       }
+      console.log("will cache stringify", this.name(), args, limits);
       uuid = JSON.stringify({
         name: this.name(),
         args: args,

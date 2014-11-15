@@ -183,7 +183,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
     findOne: (args, callback) ->
         uuid = JSON.stringify { name: @name(), args: args }
-
+        console.log("will cache stringify", @name(), args);
         if loadCache = @cache[uuid]
 #            console.log "FINDONE CACHE   #{ uuid }"
             callback undefined, loadCache, uuid
@@ -199,6 +199,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
     find: (args, limits, callback, callbackDone) ->
         if limits.nocache then return @_super 'find', args, limits, callback
+        console.log("will cache stringify", @name(), args, limits);
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
 
         if loadCache = @cache[uuid]
