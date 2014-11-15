@@ -270,6 +270,9 @@
     },
     findOne: function(args, callback) {
       var cb;
+      console.log("stringify", {
+        name: this.name()
+      }, args);
       cb = (function(_this) {
         return function(err, data) {
           return callback(err, data, JSON.stringify({
@@ -316,8 +319,6 @@
     },
     findOne: function(args, callback) {
       var loadCache, uuid;
-        console.log("stringify", this.name(), args);
-
       uuid = JSON.stringify({
         name: this.name(),
         args: args

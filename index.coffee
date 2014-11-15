@@ -150,6 +150,7 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
         )
 
     findOne: (args,callback) ->
+        console.log "stringify", name: @name(), args
         cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
         @_super 'findOne', args, cb
 
