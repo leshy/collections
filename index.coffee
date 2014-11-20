@@ -150,7 +150,7 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
         )
 
     findOne: (args,callback) ->
-        console.log "stringify", name: @name(), args
+        console.log "stringify request", name: @name(), args
         cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
         @_super 'findOne', args, cb
 
@@ -182,15 +182,15 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         @cache = {}
 
     findOne: (args, callback) ->
-        uuid = JSON.stringify { name: @name(), args: args }
         console.log("will cache stringify", @name(), args);
+        uuid = JSON.stringify { name: @name(), args: args }
+        console.log("pass 1")
         if loadCache = @cache[uuid]
-#            console.log "FINDONE CACHE   #{ uuid }"
+            console.log "FINDONE CACHE  #{ uuid }"
             callback undefined, loadCache, uuid
             return uuid
 
-#        console.log "FINDONE REQUEST #{ uuid }"
-
+        console.log "FINDONE REQUEST    #{ uuid }"
         @_super 'findOne', args, (err,data,uuid) =>
             reqCache = @addToCache uuid, data
             callback err, data, uuid, reqCache
@@ -203,12 +203,12 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
 
         if loadCache = @cache[uuid]
-            #console.log "FIND CACHE      #{ uuid }"
+            console.log "FIND CACHE      #{ uuid }"
             _.map loadCache, (data) -> callback undefined, data, uuid
             helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
             return uuid
             
-#        console.log "FIND REQUEST    #{ uuid }"
+        console.log "FIND REQUEST    #{ uuid }"
                                                 
         cache = []
         fail = false
