@@ -351,6 +351,7 @@
         args: args,
         limits: limits
       });
+      console.log("pass 1");
       if (loadCache = this.cache[uuid]) {
         console.log("FIND CACHE      " + uuid);
         _.map(loadCache, function(data) {
