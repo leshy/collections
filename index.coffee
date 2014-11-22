@@ -10,7 +10,7 @@ settings = exports.settings = {}
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
 
 # this can be mixed into a RemoteCollection or Collection itself
-# it adds findModel method that automatically instantiates propper models for query results
+# it adds findModel method that automatically instantiates propper models for query results depeding on the _t property
 ModelMixin = exports.ModelMixin = sman.extend4000
     initialize: ->
         @models = {}
