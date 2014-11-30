@@ -12,15 +12,17 @@ sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixi
 settings = exports.settings = {}
 
 exports.definePermissions = definePermissions = (f) ->
-    permissions = {}
+    permissions = { read: {}, write: {}, execute: {} }
     
-    defattr = (name, permission) ->
-        if not permissions[name] then permissions[name] = []
-        permissions[name].push permission
+    defPerm = (perm, name, permission) ->
+        if not permissions[perm][name] then permissions[perm][name] = []
+        permissions[perm][name].push permission
 
-    deffun = defattr
-            
-    f(defattr, deffun)
+    write = (name, permission) -> defPerm 'write', name, permission
+    read = (name, permission) -> defPerm 'read', name, permission
+    execute = (name, permission) -> defPerm 'execute', name, permission
+    
+    f(write, execute, read)
 
     permissions
 
@@ -33,19 +35,26 @@ SaveRealm = exports.SaveRealm = new Object()
 Permission = exports.Permission = Validator.ValidatedModel.extend4000
     initialize: -> if chew = @get 'chew' then @chew = chew
     chew: (value,data,callback) -> callback null, value
-    match: (model,realm,callback) ->
-        matchModel = @get 'matchModel'
-        matchRealm = @get 'matchRealm'
-        if not matchModel and not matchRealm then return callback()
-        async.series [
-            (callback) =>
-                if not (validator = @get 'matchModel') then callback()
-                else v(validator).feed model.attributes, callback
-            (callback) =>
-                if not (validator = @get 'matchRealm') then callback()
+    match: (model,value,realm,callback) ->
+        matchModel = @get('matchModel') or @matchModel
+        matchValue = @get('matchValue') or @matchValue
+        matchRealm = @get('matchRealm') or @matchRealm
+        if not matchModel and not matchRealm and not matchValue then return callback undefined, value
+        async.series {
+            matchRealm: (callback) =>
+                if not (validator = matchRealm) then callback()
                 else v(validator).feed realm, callback
-        ], callback
-
+            matchModel: (callback) =>
+                if not (validator = matchModel) then callback()
+                else v(validator).feed model.attributes, callback
+            matchValue: (callback) =>
+                if not (validator = matchValue) then callback()
+                else v(validator).feed value, callback
+        }, (err,data) ->
+            if err then return callback err
+            if data.matchValue then value = data.matchValue
+            callback null, value
+            
 # knows about its collection, knows how to store/create itself and defines the permissions
 #
 # it logs changes of its attributes (localCallPropagade) 
@@ -165,39 +174,46 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         @collection.fcall name, args, { id: @id }, callback
         
     remoteCallReceive: (name,args,realm,callback) ->
-        if realm then @applyPermission name, args, realm, (err,args) =>
+        @applyPermission 'execute', name, args, realm, (err,args) =>
             if err then callback(err); return
-            @[name].apply @, args.concat(callback)
-        else
             @[name].apply @, args.concat(callback)
 
     update: (data,realm,callback) ->
-        if not realm then @set(data)
-            
-        else @applyPermissions data, realm, (err,data) =>
+        @applyPermissions 'write', data, realm, (err,data) =>
             if err then return helpers.cbc callback, err, data
             @set(data)
             helpers.cbc callback, err, data
 
-    applyPermissions: (attrs,realm,callback) ->
-        self = @
-        async.parallel helpers.dictMap(attrs, (value,attribute) => (callback) => @getPermission(attribute,realm,callback)), (err,permissions) ->
-            if err then return callback "permission denied for attribute" + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
-            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(attrs[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
+#    applyPermissions: (attrs,realm,callback) ->
+#        self = @
+#        async.parallel helpers.dictMap(attrs, (value,attribute) => (callback) => @getPermission(attribute,value,realm,callback)), (err,permissions) ->
+#            if err then return callback "permission denied for attribute" + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
+#            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(attrs[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
 
-    # why not just use applyPermissions with one key value pair in data?
-    applyPermission: (attribute,value,realm,callback) ->
-        @getPermission attribute, realm, (err,permission) =>
-            if err then helperc.cbc callback, err
-            permission.chew value, { model: @, realm: realm, attribute: attribute }, callback
+    applyPermissions: (type, attrs, realm, callback, strictPerm=true) ->
+        console.log "apply permissions",type,attrs
+
+        if strictPerm
+            console.log "STRICT!"
+            async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, callback)), callback
+        else
+            console.log "NOT STRICT!"
+            async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
+                callback undefined, helpers.dictMap data, (x) -> x
+
 
     # will find a first permission that matches this realm for this attribute and return it
-    getPermission: (attribute,realm,callback) ->
+    applyPermission: (type,attribute,value,realm,callback) ->
         model = @
-        if not attributePermissions = @permissions?[attribute] then return callback attribute + " (not defined)"
-        async.series _.map(attributePermissions, (permission) -> (callback) -> permission.match(model, realm, (err,data) -> if not err then callback(permission) else callback() )), (permission) ->
-            if permission then callback(undefined,permission) else callback(attribute)
-
+        if not attributePermissions = @permissions?[type][attribute] then return callback attribute + " (not defined)"
+        async.mapSeries attributePermissions, ((permission,callback) ->
+            permission.match model, value, realm, (err,value) ->
+                callback(value,err)),
+            (value, err) ->
+                err = _.last(err)
+                if err then console.log "permission denied: ",err
+                if err or not value then callback 'access denied' else callback null, value
+            
     # looks for references to remote models and replaces them with object ids
     # what do we do if a reference object is not flushed? propagade flush call for now
     exportReferences: (data,callback) ->
@@ -252,7 +268,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
 
         if settings.storePermissions
-            @applyPermissions changes, exports.StoreRealm, (err,data) =>
+            @applyPermissions 'write', changes, exports.StoreRealm, (err,data) =>
                 if not err then @set(data) else return helpers.cbc callback, err
 
         continue1 = (err,subchanges) =>
@@ -274,9 +290,13 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         if @get 'id' then @eventAsync 'update', changes, continue1
         else @eventAsync 'create', changes, continue1
     # this will have to go through some kind of READ permissions in the future..
-    render: (realm, callback) ->
-        @exportReferences @attributes, (err,data) ->
-            callback(err,data)
+    render: (realm, callback) -> 
+        @exportReferences @attributes, (err,data) =>
+            @applyPermissions('read',
+                data,
+                realm,
+                ((err,data) -> console.log 'applupermissions res', err, data; callback err,data),
+                false)
 
     del: (callback) -> @trigger 'del', @
 

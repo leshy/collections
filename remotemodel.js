@@ -29,16 +29,28 @@
   settings = exports.settings = {};
 
   exports.definePermissions = definePermissions = function(f) {
-    var defattr, deffun, permissions;
-    permissions = {};
-    defattr = function(name, permission) {
-      if (!permissions[name]) {
-        permissions[name] = [];
-      }
-      return permissions[name].push(permission);
+    var defPerm, execute, permissions, read, write;
+    permissions = {
+      read: {},
+      write: {},
+      execute: {}
     };
-    deffun = defattr;
-    f(defattr, deffun);
+    defPerm = function(perm, name, permission) {
+      if (!permissions[perm][name]) {
+        permissions[perm][name] = [];
+      }
+      return permissions[perm][name].push(permission);
+    };
+    write = function(name, permission) {
+      return defPerm('write', name, permission);
+    };
+    read = function(name, permission) {
+      return defPerm('read', name, permission);
+    };
+    execute = function(name, permission) {
+      return defPerm('execute', name, permission);
+    };
+    f(write, execute, read);
     return permissions;
   };
 
@@ -54,34 +66,54 @@
     chew: function(value, data, callback) {
       return callback(null, value);
     },
-    match: function(model, realm, callback) {
-      var matchModel, matchRealm;
-      matchModel = this.get('matchModel');
-      matchRealm = this.get('matchRealm');
-      if (!matchModel && !matchRealm) {
-        return callback();
+    match: function(model, value, realm, callback) {
+      var matchModel, matchRealm, matchValue;
+      matchModel = this.get('matchModel') || this.matchModel;
+      matchValue = this.get('matchValue') || this.matchValue;
+      matchRealm = this.get('matchRealm') || this.matchRealm;
+      if (!matchModel && !matchRealm && !matchValue) {
+        return callback(void 0, value);
       }
-      return async.series([
-        (function(_this) {
+      return async.series({
+        matchRealm: (function(_this) {
           return function(callback) {
             var validator;
-            if (!(validator = _this.get('matchModel'))) {
-              return callback();
-            } else {
-              return v(validator).feed(model.attributes, callback);
-            }
-          };
-        })(this), (function(_this) {
-          return function(callback) {
-            var validator;
-            if (!(validator = _this.get('matchRealm'))) {
+            if (!(validator = matchRealm)) {
               return callback();
             } else {
               return v(validator).feed(realm, callback);
             }
           };
+        })(this),
+        matchModel: (function(_this) {
+          return function(callback) {
+            var validator;
+            if (!(validator = matchModel)) {
+              return callback();
+            } else {
+              return v(validator).feed(model.attributes, callback);
+            }
+          };
+        })(this),
+        matchValue: (function(_this) {
+          return function(callback) {
+            var validator;
+            if (!(validator = matchValue)) {
+              return callback();
+            } else {
+              return v(validator).feed(value, callback);
+            }
+          };
         })(this)
-      ], callback);
+      }, function(err, data) {
+        if (err) {
+          return callback(err);
+        }
+        if (data.matchValue) {
+          value = data.matchValue;
+        }
+        return callback(null, value);
+      });
     }
   });
 
@@ -270,94 +302,77 @@
       }, callback);
     },
     remoteCallReceive: function(name, args, realm, callback) {
-      if (realm) {
-        return this.applyPermission(name, args, realm, (function(_this) {
-          return function(err, args) {
-            if (err) {
-              callback(err);
-              return;
-            }
-            return _this[name].apply(_this, args.concat(callback));
-          };
-        })(this));
-      } else {
-        return this[name].apply(this, args.concat(callback));
-      }
-    },
-    update: function(data, realm, callback) {
-      if (!realm) {
-        return this.set(data);
-      } else {
-        return this.applyPermissions(data, realm, (function(_this) {
-          return function(err, data) {
-            if (err) {
-              return helpers.cbc(callback, err, data);
-            }
-            _this.set(data);
-            return helpers.cbc(callback, err, data);
-          };
-        })(this));
-      }
-    },
-    applyPermissions: function(attrs, realm, callback) {
-      var self;
-      self = this;
-      return async.parallel(helpers.dictMap(attrs, (function(_this) {
-        return function(value, attribute) {
-          return function(callback) {
-            return _this.getPermission(attribute, realm, callback);
-          };
-        };
-      })(this)), function(err, permissions) {
-        if (err) {
-          return callback("permission denied for attribute" + (err.constructor === Object ? "s " + _.keys(err).join(', ') : " " + err));
-        }
-        return async.parallel(helpers.dictMap(permissions, function(permission, attribute) {
-          return function(callback) {
-            return permission.chew(attrs[attribute], {
-              model: self,
-              realm: realm,
-              attribute: attribute
-            }, callback);
-          };
-        }), callback);
-      });
-    },
-    applyPermission: function(attribute, value, realm, callback) {
-      return this.getPermission(attribute, realm, (function(_this) {
-        return function(err, permission) {
+      return this.applyPermission('execute', name, args, realm, (function(_this) {
+        return function(err, args) {
           if (err) {
-            helperc.cbc(callback, err);
+            callback(err);
+            return;
           }
-          return permission.chew(value, {
-            model: _this,
-            realm: realm,
-            attribute: attribute
-          }, callback);
+          return _this[name].apply(_this, args.concat(callback));
         };
       })(this));
     },
-    getPermission: function(attribute, realm, callback) {
+    update: function(data, realm, callback) {
+      return this.applyPermissions('write', data, realm, (function(_this) {
+        return function(err, data) {
+          if (err) {
+            return helpers.cbc(callback, err, data);
+          }
+          _this.set(data);
+          return helpers.cbc(callback, err, data);
+        };
+      })(this));
+    },
+    applyPermissions: function(type, attrs, realm, callback, strictPerm) {
+      if (strictPerm == null) {
+        strictPerm = true;
+      }
+      console.log("apply permissions", type, attrs);
+      if (strictPerm) {
+        console.log("STRICT!");
+        return async.series(helpers.dictMap(attrs, (function(_this) {
+          return function(value, attribute) {
+            return function(callback) {
+              return _this.applyPermission(type, attribute, value, realm, callback);
+            };
+          };
+        })(this)), callback);
+      } else {
+        console.log("NOT STRICT!");
+        return async.series(helpers.dictMap(attrs, (function(_this) {
+          return function(value, attribute) {
+            return function(callback) {
+              return _this.applyPermission(type, attribute, value, realm, function(err, data) {
+                return callback(null, data);
+              });
+            };
+          };
+        })(this)), function(err, data) {
+          return callback(void 0, helpers.dictMap(data, function(x) {
+            return x;
+          }));
+        });
+      }
+    },
+    applyPermission: function(type, attribute, value, realm, callback) {
       var attributePermissions, model, _ref;
       model = this;
-      if (!(attributePermissions = (_ref = this.permissions) != null ? _ref[attribute] : void 0)) {
+      if (!(attributePermissions = (_ref = this.permissions) != null ? _ref[type][attribute] : void 0)) {
         return callback(attribute + " (not defined)");
       }
-      return async.series(_.map(attributePermissions, function(permission) {
-        return function(callback) {
-          return permission.match(model, realm, function(err, data) {
-            if (!err) {
-              return callback(permission);
-            } else {
-              return callback();
-            }
-          });
-        };
-      }), function(permission) {
-        if (permission) {
-          return callback(void 0, permission);
+      return async.mapSeries(attributePermissions, (function(permission, callback) {
+        return permission.match(model, value, realm, function(err, value) {
+          return callback(value, err);
+        });
+      }), function(value, err) {
+        err = _.last(err);
+        if (err) {
+          console.log("permission denied: ", err);
+        }
+        if (err || !value) {
+          return callback('access denied');
         } else {
-          return callback(attribute);
+          return callback(null, value);
         }
       });
     },
@@ -438,7 +453,7 @@
       })(this));
       this.changes = {};
       if (settings.storePermissions) {
-        this.applyPermissions(changes, exports.StoreRealm, (function(_this) {
+        this.applyPermissions('write', changes, exports.StoreRealm, (function(_this) {
           return function(err, data) {
             if (!err) {
               return _this.set(data);
@@ -484,9 +499,14 @@
       }
     },
     render: function(realm, callback) {
-      return this.exportReferences(this.attributes, function(err, data) {
-        return callback(err, data);
-      });
+      return this.exportReferences(this.attributes, (function(_this) {
+        return function(err, data) {
+          return _this.applyPermissions('read', data, realm, (function(err, data) {
+            console.log('applupermissions res', err, data);
+            return callback(err, data);
+          }), false);
+        };
+      })(this));
     },
     del: function(callback) {
       return this.trigger('del', this);
