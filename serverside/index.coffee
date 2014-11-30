@@ -5,6 +5,8 @@ exports.remotemodel = remotemodel = require '../remotemodel'
 
 #remotemodel.settings.storePermissions = true
 
+#whats up with this clone?, bugfix!
+
 exports.MongoCollection = mongo.MongoCollection.extend4000 collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin, collections.CachingMixin
 
-
+#exports.MongoCollection = mongo.MongoCollection.extend4000 _.clone(collections.ModelMixin)

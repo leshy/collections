@@ -270,9 +270,6 @@
     },
     findOne: function(args, callback) {
       var cb;
-      console.log("stringify request", {
-        name: this.name()
-      }, args);
       cb = (function(_this) {
         return function(err, data) {
           return callback(err, data, JSON.stringify({
@@ -319,18 +316,14 @@
     },
     findOne: function(args, callback) {
       var loadCache, uuid;
-      console.log("will cache stringify", this.name(), args);
       uuid = JSON.stringify({
         name: this.name(),
         args: args
       });
-      console.log("pass 1");
       if (loadCache = this.cache[uuid]) {
-        console.log("FINDONE CACHE  " + uuid);
         callback(void 0, loadCache, uuid);
         return uuid;
       }
-      console.log("FINDONE REQUEST    " + uuid);
       this._super('findOne', args, (function(_this) {
         return function(err, data, uuid) {
           var reqCache;
@@ -345,22 +338,18 @@
       if (limits.nocache) {
         return this._super('find', args, limits, callback);
       }
-      console.log("will cache stringify", this.name(), args, limits);
       uuid = JSON.stringify({
         name: this.name(),
         args: args,
         limits: limits
       });
-      console.log("pass 1");
       if (loadCache = this.cache[uuid]) {
-        console.log("FIND CACHE      " + uuid);
         _.map(loadCache, function(data) {
           return callback(void 0, data, uuid);
         });
         helpers.cbc(callbackDone, void 0, void 0, uuid, loadCache);
         return uuid;
       }
-      console.log("FIND REQUEST    " + uuid);
       cache = [];
       fail = false;
       this._super('find', args, limits, (function(_this) {
@@ -396,5 +385,7 @@
       return this._super('create', data, callback);
     }
   });
+
+  exports.classical = Backbone.Model.extend4000(ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin);
 
 }).call(this);

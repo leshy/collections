@@ -5,10 +5,10 @@ helpers = require 'helpers'
 _ = require 'underscore'
 
 MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
-    validator: v( db: 'instance', collection: v().or('string','instance') )
+    validator: v( db: 'instance' )
     
     initialize: ->
-        @collection = @get('collection')
+        @collection = @get('collection') or @get('name')
         if @collection.constructor is String then @get('db').collection @collection, (err,collection) => @set { collection: @collection = collection }
         if not @get 'name' then @set { name: @collection.collectionName };
 
