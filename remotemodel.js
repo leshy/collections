@@ -327,9 +327,7 @@
       if (strictPerm == null) {
         strictPerm = true;
       }
-      console.log("apply permissions", type, attrs);
       if (strictPerm) {
-        console.log("STRICT!");
         return async.series(helpers.dictMap(attrs, (function(_this) {
           return function(value, attribute) {
             return function(callback) {
@@ -338,7 +336,6 @@
           };
         })(this)), callback);
       } else {
-        console.log("NOT STRICT!");
         return async.series(helpers.dictMap(attrs, (function(_this) {
           return function(value, attribute) {
             return function(callback) {

@@ -191,13 +191,13 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 #            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(attrs[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
 
     applyPermissions: (type, attrs, realm, callback, strictPerm=true) ->
-        console.log "apply permissions",type,attrs
+#        console.log "apply permissions",type,attrs
 
         if strictPerm
-            console.log "STRICT!"
+#            console.log "STRICT!"
             async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, callback)), callback
         else
-            console.log "NOT STRICT!"
+#            console.log "NOT STRICT!"
             async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
                 callback undefined, helpers.dictMap data, (x) -> x
 
