@@ -66,7 +66,7 @@
     chew: function(value, data, callback) {
       return callback(null, value);
     },
-    match: function(model, value, realm, callback) {
+    match: function(model, value, attribute, realm, callback) {
       var matchModel, matchRealm, matchValue;
       matchModel = this.get('matchModel') || this.matchModel;
       matchValue = this.get('matchValue') || this.matchValue;
@@ -105,15 +105,28 @@
             }
           };
         })(this)
-      }, function(err, data) {
-        if (err) {
-          return callback(err);
-        }
-        if (data.matchValue) {
-          value = data.matchValue;
-        }
-        return callback(null, value);
-      });
+      }, (function(_this) {
+        return function(err, data) {
+          var chew;
+          if (err) {
+            return callback(err);
+          }
+          if (data.matchValue) {
+            value = data.matchValue;
+          }
+          if (chew = _this.get('chew')) {
+            return chew.call(model, value, attribute, realm, function(err, newValue) {
+              if (err) {
+                return callback(err);
+              } else {
+                return callback(null, newValue);
+              }
+            });
+          } else {
+            return callback(null, value);
+          }
+        };
+      })(this));
     }
   });
 
@@ -358,7 +371,7 @@
         return callback(attribute + " (not defined)");
       }
       return async.mapSeries(attributePermissions, (function(permission, callback) {
-        return permission.match(model, value, realm, function(err, value) {
+        return permission.match(model, value, attribute, realm, function(err, value) {
           return callback(value, err);
         });
       }), function(value, err) {

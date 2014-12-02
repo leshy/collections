@@ -35,7 +35,7 @@ SaveRealm = exports.SaveRealm = new Object()
 Permission = exports.Permission = Validator.ValidatedModel.extend4000
     initialize: -> if chew = @get 'chew' then @chew = chew
     chew: (value,data,callback) -> callback null, value
-    match: (model,value,realm,callback) ->
+    match: (model, value, attribute, realm, callback) ->
         matchModel = @get('matchModel') or @matchModel
         matchValue = @get('matchValue') or @matchValue
         matchRealm = @get('matchRealm') or @matchRealm
@@ -50,11 +50,17 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
             matchValue: (callback) =>
                 if not (validator = matchValue) then callback()
                 else v(validator).feed value, callback
-        }, (err,data) ->
+        }, (err,data) =>
             if err then return callback err
             if data.matchValue then value = data.matchValue
-            callback null, value
             
+            if chew = @get 'chew'
+                chew.call model, value, attribute, realm, (err,newValue) ->
+                    if err then return callback err else callback null, newValue
+            else
+                callback null, value
+
+
 # knows about its collection, knows how to store/create itself and defines the permissions
 #
 # it logs changes of its attributes (localCallPropagade) 
@@ -206,8 +212,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     applyPermission: (type,attribute,value,realm,callback) ->
         model = @
         if not attributePermissions = @permissions?[type][attribute] then return callback attribute + " (not defined)"
+            
         async.mapSeries attributePermissions, ((permission,callback) ->
-            permission.match model, value, realm, (err,value) ->
+            permission.match model, value, attribute, realm, (err,value) ->
                 callback(value,err)),
             (value, err) ->
                 err = _.last(err)
