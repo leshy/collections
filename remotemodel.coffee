@@ -190,23 +190,12 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @set(data)
             helpers.cbc callback, err, data
 
-#    applyPermissions: (attrs,realm,callback) ->
-#        self = @
-#        async.parallel helpers.dictMap(attrs, (value,attribute) => (callback) => @getPermission(attribute,value,realm,callback)), (err,permissions) ->
-#            if err then return callback "permission denied for attribute" + (if err.constructor is Object then "s " + _.keys(err).join(', ') else " " + err)
-#            async.parallel helpers.dictMap(permissions, (permission,attribute) -> (callback) -> permission.chew(attrs[attribute], { model: self, realm: realm, attribute: attribute }, callback)), callback
-
     applyPermissions: (type, attrs, realm, callback, strictPerm=true) ->
-#        console.log "apply permissions",type,attrs
-
         if strictPerm
-#            console.log "STRICT!"
             async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, callback)), callback
         else
-#            console.log "NOT STRICT!"
             async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
                 callback undefined, helpers.dictMap data, (x) -> x
-
 
     # will find a first permission that matches this realm for this attribute and return it
     applyPermission: (type,attribute,value,realm,callback) ->
@@ -302,7 +291,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @applyPermissions('read',
                 data,
                 realm,
-                ((err,data) -> console.log 'applupermissions res', err, data; callback err,data),
+                ((err,data) -> callback err,data),
                 false)
 
     del: (callback) -> @trigger 'del', @

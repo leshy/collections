@@ -512,7 +512,6 @@
       return this.exportReferences(this.attributes, (function(_this) {
         return function(err, data) {
           return _this.applyPermissions('read', data, realm, (function(err, data) {
-            console.log('applupermissions res', err, data);
             return callback(err, data);
           }), false);
         };
