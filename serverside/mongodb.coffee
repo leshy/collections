@@ -43,7 +43,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
             callback undefined, @patternOut(entry)
 
     remove: (pattern,callback) ->
-        @collection.remove @patternIn(pattern), callback
+        @collection.remove @patternIn(pattern), helpers.cb(callback)
 
     update: (pattern,update,callback) ->
         set = {}

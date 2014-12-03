@@ -91,7 +91,7 @@
       })(this));
     },
     remove: function(pattern, callback) {
-      return this.collection.remove(this.patternIn(pattern), callback);
+      return this.collection.remove(this.patternIn(pattern), helpers.cb(callback));
     },
     update: function(pattern, update, callback) {
       var set, unset;
