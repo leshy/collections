@@ -314,14 +314,14 @@
         id: this.id
       }, callback);
     },
-    remoteCallReceive: function(name, args, realm, callback) {
+    remoteCallReceive: function(name, args, realm, callback, callbackMulti) {
       return this.applyPermission('execute', name, args, realm, (function(_this) {
-        return function(err, args) {
+        return function(err, args, permission) {
           if (err) {
             callback(err);
             return;
           }
-          return _this[name].apply(_this, args.concat(callback));
+          return _this[name].apply(_this, args.concat(callback, callbackMulti));
         };
       })(this));
     },

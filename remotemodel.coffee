@@ -20,7 +20,7 @@ exports.definePermissions = definePermissions = (f) ->
 
     write = (name, permission) -> defPerm 'write', name, permission
     read = (name, permission) -> defPerm 'read', name, permission
-    execute = (name, permission) -> defPerm 'execute', name, permission
+    execute = (name, permission) -> defPerm 'execute', name, permission # query - callback
     
     f(write, execute, read)
 
@@ -179,11 +179,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     localCallPropagade: (name,args,callback) ->
         @collection.fcall name, args, { id: @id }, callback
         
-    remoteCallReceive: (name,args,realm,callback) ->
-        @applyPermission 'execute', name, args, realm, (err,args) =>
+    remoteCallReceive: (name,args,realm,callback,callbackMulti) ->
+        @applyPermission 'execute', name, args, realm, (err,args,permission) =>
             if err then callback(err); return
-            @[name].apply @, args.concat(callback)
-
+            @[name].apply @, args.concat(callback,callbackMulti)
+            
     update: (data,realm,callback) ->
         @applyPermissions 'write', data, realm, (err,data) =>
             if err then return helpers.cbc callback, err, data
@@ -201,10 +201,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     applyPermission: (type,attribute,value,realm,callback) ->
         model = @
         if not attributePermissions = @permissions?[type][attribute] then return callback attribute + " (not defined)"
-            
+
         async.mapSeries attributePermissions, ((permission,callback) ->
-            permission.match model, value, attribute, realm, (err,value) ->
-                callback(value,err)),
+            permission.match model, value, attribute, realm, (err,value) -> callback(value,err)),
             (value, err) ->
                 err = _.last(err)
                 if err then console.log "permission denied: ",err

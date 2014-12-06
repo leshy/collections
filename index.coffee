@@ -77,9 +77,9 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         @findOne pattern, (err,entry) =>
             if (not entry or err) then callback(err) else callback(err, new (@resolveModel(entry))(entry))
 
-    fcall: (name,args,pattern,realm,callback) ->
+    fcall: (name,args,pattern,realm,callback,callbackMulti) ->
         @findModel pattern, (err,model) ->
-            if model then model.remoteCallReceive name, args, realm, (err,data) -> callback err, data
+            if model then model.remoteCallReceive name, args, realm, callback, callbackMulti
             else callback 'model not found'
 
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself

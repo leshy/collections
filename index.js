@@ -143,12 +143,10 @@
         };
       })(this));
     },
-    fcall: function(name, args, pattern, realm, callback) {
+    fcall: function(name, args, pattern, realm, callback, callbackMulti) {
       return this.findModel(pattern, function(err, model) {
         if (model) {
-          return model.remoteCallReceive(name, args, realm, function(err, data) {
-            return callback(err, data);
-          });
+          return model.remoteCallReceive(name, args, realm, callback, callbackMulti);
         } else {
           return callback('model not found');
         }
