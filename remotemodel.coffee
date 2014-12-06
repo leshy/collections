@@ -161,7 +161,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
             #when 'update' then @set change.update, { silent: true }
             
-            #when 'remove' then @del()
+            when 'remove' then @del()
             
     # I need to find nested models here and replace them with their ids
     localChangePropagade: (model,data) ->

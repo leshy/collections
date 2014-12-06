@@ -3,9 +3,10 @@ _ = require 'underscore'
 helpers = require 'helpers'
 _.extend exports, require('./remotemodel')
 RemoteModel = exports.RemoteModel
+
 subscriptionman2 = require 'subscriptionman2'
 
-settings = exports.settings = {}
+settings = exports.settings
 
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
 
@@ -39,7 +40,6 @@ ModelMixin = exports.ModelMixin = sman.extend4000
                         callback err,data
                     
         queue.done callback
-
 
     removeModel: (pattern, callback) ->
         queue = new helpers.queue size: 3        
@@ -82,6 +82,22 @@ ModelMixin = exports.ModelMixin = sman.extend4000
             if model then model.remoteCallReceive name, args, realm, callback, callbackMulti
             else callback 'model not found'
 
+EventMixin = exports.EventMixin = Backbone.Model.extend4000
+    update: (pattern,update,callback) ->
+        @_super 'update', pattern, update, (err,data) =>
+            if not err then @trigger 'update', { pattern: pattern, update: update }
+            callback err, data            
+
+    remove: (data,callback) ->
+        @_super 'remove', data, (err,data) =>
+            if not err then @trigger 'remove', { pattern: data }
+            callback err, data
+
+    create: (data,callback) ->
+        @_super 'create', data, (err,data) =>
+            if not err then @trigger 'create', { create: data }
+            callback err, data
+            
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
 

@@ -10,6 +10,6 @@
 
   exports.remotemodel = remotemodel = require('../remotemodel');
 
-  exports.MongoCollection = mongo.MongoCollection.extend4000(collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin, collections.CachingMixin);
+  exports.MongoCollection = mongo.MongoCollection.extend4000(collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin, collections.CachingMixin, collections.EventMixin);
 
 }).call(this);

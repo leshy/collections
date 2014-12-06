@@ -293,6 +293,8 @@
               return _this.trigger('anychange');
             };
           })(this));
+        case 'remove':
+          return this.del();
       }
     },
     localChangePropagade: function(model, data) {
