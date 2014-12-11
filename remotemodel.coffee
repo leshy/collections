@@ -28,6 +28,7 @@ exports.definePermissions = definePermissions = (f) ->
 
 SaveRealm = exports.SaveRealm = new Object()
 
+
 # defines which writes/fcalls to a model are allowed
 # and optionally parses the input data somehow (chew function)
 # permission can behave differently depending on a particular state of a model
@@ -81,7 +82,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
-            if exports.settings.autosubscribe then @subscribeModel id
+            if @autosubscribe or exports.settings.autosubscribe then @subscribeModel id
                 
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
@@ -93,6 +94,14 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
         # if we haven't been saved yet (no id), we want to flush all our attributes when flush is called..
         if @get 'id' then @changes = {} else @changes = helpers.dictMap(@attributes, -> true)
+
+    refresh: (callback) ->
+        @collection.findOne { id: @id }, (err,data) =>
+            if err then return callback err
+            _.extend @attributes, data
+            _.map @attributes, (value,key) => if not data[key] then delete @attributes[key] # is there a nicer way to do this?
+            
+            callback(null, @)
 
     subscribeModel: (id) ->
         sub = =>
@@ -148,6 +157,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             _check target, callback
 
     remoteChangeReceive: (change) ->
+        console.log 'remote change receive',change, @attributes
+        
         switch change.action
             when 'update' then @importReferences change.update, (err,data) =>
                 @set data, { silent: true }
@@ -211,7 +222,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             
     # looks for references to remote models and replaces them with object ids
     # what do we do if a reference object is not flushed? propagade flush call for now
-    exportReferences: (data,callback) ->
+    exportReferences: (data=@attributes,callback) ->
         # finds a reference to remotemodel, and converts it to saveable reference in a form of a small json that points to the correct collection and id
         _matchf = (value,callback) ->
             if value instanceof RemoteModel
@@ -258,10 +269,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         @flushnow(callback)
 
     flushnow: (callback) ->
-        changes = helpers.hashfilter @changes, (value,property) => @attributes[property]
+
+        changes = {}
+        _.map @changes, (value,property) => changes[property] = @attributes[property]
         @changes = {}
-
-
+        
         if settings.storePermissions
             @applyPermissions 'write', changes, exports.StoreRealm, (err,data) =>
                 if not err then @set(data) else return helpers.cbc callback, err
