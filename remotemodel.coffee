@@ -96,12 +96,14 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         if @get 'id' then @changes = {} else @changes = helpers.dictMap(@attributes, -> true)
 
     refresh: (callback) ->
-        @collection.findOne { id: @id }, (err,data) =>
-            if err then return callback err
-            _.extend @attributes, data
-            _.map @attributes, (value,key) => if not data[key] then delete @attributes[key] # is there a nicer way to do this?
+        @collection.findModel {id: @id}, (err,model) ->
+            callback.apply model, [err,model]
+#        @collection.findOne { id: @id }, (err,data) =>
+#            if err then return callback err
+#            _.extend @attributes, data
+#            _.map @attributes, (value,key) => if not data[key] then delete @attributes[key] # is there a nicer way to do this?
             
-            callback(null, @)
+#            callback(null, @)
 
     subscribeModel: (id) ->
         sub = =>

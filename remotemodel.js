@@ -169,22 +169,11 @@
       }
     },
     refresh: function(callback) {
-      return this.collection.findOne({
+      return this.collection.findModel({
         id: this.id
-      }, (function(_this) {
-        return function(err, data) {
-          if (err) {
-            return callback(err);
-          }
-          _.extend(_this.attributes, data);
-          _.map(_this.attributes, function(value, key) {
-            if (!data[key]) {
-              return delete _this.attributes[key];
-            }
-          });
-          return callback(null, _this);
-        };
-      })(this));
+      }, function(err, model) {
+        return callback.apply(model, [err, model]);
+      });
     },
     subscribeModel: function(id) {
       var sub;
