@@ -468,13 +468,14 @@
       return this.flushnow(callback);
     },
     flushnow: function(callback) {
-      var changes, continue1;
+      var changes, changesBak, continue1;
       changes = {};
       _.map(this.changes, (function(_this) {
         return function(value, property) {
           return changes[property] = _this.attributes[property];
         };
       })(this));
+      changesBak = {};
       this.changes = {};
       if (settings.storePermissions) {
         this.applyPermissions('write', changes, exports.StoreRealm, (function(_this) {

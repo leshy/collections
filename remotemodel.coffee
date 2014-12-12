@@ -274,6 +274,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
         changes = {}
         _.map @changes, (value,property) => changes[property] = @attributes[property]
+        changesBak = {}
         @changes = {}
         
         if settings.storePermissions
@@ -289,12 +290,18 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @exportReferences changes, (err, changes) =>
                 if helpers.isEmpty(changes) then helpers.cbc(callback); return
                 if not id = @get 'id' then @collection.create changes, (err,data) =>
+                    if err then
+                        @changes = changesBak
+                        return helpers.cbc callback, err
+                        
                     _.extend @attributes, _.extend(subchanges,data)
                     helpers.cbc callback, err, _.extend(subchanges, data)
                     @eventAsync 'post_create', @
                     
                 else
-                    @collection.update { id: id }, changes, helpers.cb callback
+                    @collection.update { id: id }, changes, (err,data) =>
+                        if err then @changes = changesBak
+                        return helpers.cbc callback, err, data
 
         if @get 'id' then @eventAsync 'update', changes, continue1
         else @eventAsync 'create', changes, continue1
