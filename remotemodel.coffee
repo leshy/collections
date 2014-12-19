@@ -290,24 +290,36 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             @exportReferences changes, (err, changes) =>
                 if helpers.isEmpty(changes) then helpers.cbc(callback); return
                 if not id = @get 'id' then @collection.create changes, (err,data) =>
-                    if err then
+                    if err
                         @changes = changesBak
                         return helpers.cbc callback, err
                         
                     _.extend @attributes, _.extend(subchanges,data)
+
                     helpers.cbc callback, err, _.extend(subchanges, data)
+
+                    @render {}, (err,data) =>
+                        console.log 'create render got',err,data
+                        if not err then @collection.trigger 'create', data
                     @eventAsync 'post_create', @
                     
                 else
                     @collection.update { id: id }, changes, (err,data) =>
                         if err then @changes = changesBak
+                        else @render {}, changes, (err,data) =>
+                            if not err then @collection.trigger 'update', _.extend({id: id}, changes)
+                            
                         return helpers.cbc callback, err, data
 
         if @get 'id' then @eventAsync 'update', changes, continue1
         else @eventAsync 'create', changes, continue1
-    # this will have to go through some kind of READ permissions in the future..
-    render: (realm, callback) -> 
-        @exportReferences @attributes, (err,data) =>
+
+    render: (realm, data, callback) ->
+        if data.constructor is Function
+            callback = data
+            data = @attributes
+            
+        @exportReferences data, (err,data) =>
             @applyPermissions('read',
                 data,
                 realm,

@@ -40,6 +40,7 @@
     create: function(entry, callback) {
       entry = _.extend({}, entry);
       return this.collection.insert(entry, function(err, data) {
+        console.log('mongodb create', entry);
         if ((data != null ? data[0]._id : void 0)) {
           data = {
             id: String(data[0]._id)
@@ -78,6 +79,7 @@
             if (!entry) {
               return callbackDone();
             }
+            console.log('got model', _this.patternOut(entry));
             return callback(err, _this.patternOut(entry));
           });
         };
@@ -111,6 +113,7 @@
       if (!helpers.isEmpty(unset)) {
         update['$unset'] = unset;
       }
+      console.log('mongodb update', this.patternIn(pattern), update);
       return this.collection.update(this.patternIn(pattern), update, callback);
     }
   });

@@ -505,14 +505,37 @@
             }
             if (!(id = _this.get('id'))) {
               return _this.collection.create(changes, function(err, data) {
+                if (err) {
+                  _this.changes = changesBak;
+                  return helpers.cbc(callback, err);
+                }
                 _.extend(_this.attributes, _.extend(subchanges, data));
                 helpers.cbc(callback, err, _.extend(subchanges, data));
+                _this.render({}, function(err, data) {
+                  console.log('create render got', err, data);
+                  if (!err) {
+                    return _this.collection.trigger('create', data);
+                  }
+                });
                 return _this.eventAsync('post_create', _this);
               });
             } else {
               return _this.collection.update({
                 id: id
-              }, changes, helpers.cb(callback));
+              }, changes, function(err, data) {
+                if (err) {
+                  _this.changes = changesBak;
+                } else {
+                  _this.render({}, changes, function(err, data) {
+                    if (!err) {
+                      return _this.collection.trigger('update', _.extend({
+                        id: id
+                      }, changes));
+                    }
+                  });
+                }
+                return helpers.cbc(callback, err, data);
+              });
             }
           });
         };
@@ -523,8 +546,12 @@
         return this.eventAsync('create', changes, continue1);
       }
     },
-    render: function(realm, callback) {
-      return this.exportReferences(this.attributes, (function(_this) {
+    render: function(realm, data, callback) {
+      if (data.constructor === Function) {
+        callback = data;
+        data = this.attributes;
+      }
+      return this.exportReferences(data, (function(_this) {
         return function(err, data) {
           return _this.applyPermissions('read', data, realm, (function(err, data) {
             return callback(err, data);

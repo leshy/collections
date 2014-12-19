@@ -15,6 +15,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
     create: (entry,callback) ->
         entry = _.extend({}, entry) # mongodb api will automatically append _.id to this dict, I want to avoid this..
         @collection.insert(entry,(err,data) ->
+            console.log 'mongodb create', entry
             if (data?[0]._id)
                 data = { id: String(data[0]._id) };
             callback err, data)
@@ -36,6 +37,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         @collection.find @patternIn(pattern), limits, (err,cursor) =>
             cursor.each (err,entry) =>
                 if not entry then return callbackDone()
+                console.log 'got model', @patternOut(entry)
                 callback err, @patternOut(entry)
     
     findOne: (pattern,callback) ->
@@ -54,6 +56,6 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         
         if not helpers.isEmpty(set) then update['$set'] = set
         if not helpers.isEmpty(unset) then update['$unset'] = unset
-
+        console.log 'mongodb update', @patternIn(pattern), update
         @collection.update @patternIn(pattern), update, callback
 
