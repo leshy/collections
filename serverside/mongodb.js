@@ -79,7 +79,6 @@
             if (!entry) {
               return callbackDone();
             }
-            console.log('got model', _this.patternOut(entry));
             return callback(err, _this.patternOut(entry));
           });
         };

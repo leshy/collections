@@ -37,7 +37,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         @collection.find @patternIn(pattern), limits, (err,cursor) =>
             cursor.each (err,entry) =>
                 if not entry then return callbackDone()
-                console.log 'got model', @patternOut(entry)
+#                console.log 'got model', @patternOut(entry)
                 callback err, @patternOut(entry)
     
     findOne: (pattern,callback) ->

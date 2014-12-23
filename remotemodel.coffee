@@ -9,8 +9,6 @@ subscriptionman2 = require 'subscriptionman2'
 
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
 
-settings = exports.settings = {}
-
 exports.definePermissions = definePermissions = (f) ->
     permissions = { read: {}, write: {}, execute: {} }
     
@@ -74,15 +72,17 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     validator: v { collection: 'instance' }
 
     initialize: ->
-        # this is temporary, permission system will make sure that this is never exported
+        @settings = _.extend {}, @settings, @get('settings')
+        
         @when 'collection', (collection) =>
             @unset 'collection'
             @collection = collection
+            @settings = _.extend @settings, @collection.settings?.model
 
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
-            if @autosubscribe or exports.settings.autosubscribe then @subscribeModel id
+            if @autosubscribe or @settings.autosubscribe then @subscribeModel id
                 
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
@@ -108,7 +108,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     subscribeModel: (id) ->
         sub = =>
             if not @collection.subscribeModel then return
-            #console.log "subscribemodel", @collection.get('name'), id, @get('name')
+            console.log "subscribemodel", @collection.get('name'), id, @get('name')
             @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
             @once 'del', => @unsubscribeModel()
 
@@ -159,8 +159,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             _check target, callback
 
     remoteChangeReceive: (change) ->
-        console.log 'remote change receive',change, @attributes
-        
+#        console.log 'remote change receive',change, @attributes       
         switch change.action
             when 'update' then @importReferences change.update, (err,data) =>
                 @set data, { silent: true }
@@ -219,7 +218,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             permission.match model, value, attribute, realm, (err,value) -> callback(value,err)),
             (value, err) ->
                 err = _.last(err)
-                if err then console.log "permission denied: ",err
+#                if err then console.log "permission denied: ",err
                 if err or not value then callback 'access denied' else callback null, value
             
     # looks for references to remote models and replaces them with object ids
@@ -277,7 +276,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         changesBak = {}
         @changes = {}
         
-        if settings.storePermissions
+        if @settings.storePermissions
             @applyPermissions 'write', changes, exports.StoreRealm, (err,data) =>
                 if not err then @set(data) else return helpers.cbc callback, err
 
@@ -299,7 +298,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                     helpers.cbc callback, err, _.extend(subchanges, data)
 
                     @render {}, (err,data) =>
-                        console.log 'create render got',err,data
                         if not err then @collection.trigger 'create', data
                     @eventAsync 'post_create', @
                     

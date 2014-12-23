@@ -6,9 +6,14 @@ RemoteModel = exports.RemoteModel
 
 subscriptionman2 = require 'subscriptionman2'
 
-settings = exports.settings
+settings = exports.settings = {}
+settings.model = {}
 
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
+
+Core = exports.Core = Backbone.Model.extend4000
+    initialize: ->
+        @settings = _.extend {}, settings, @settings, @get('settings')
 
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds findModel method that automatically instantiates propper models for query results depeding on the _t property
@@ -20,7 +25,9 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         if not definition.defaults? then definition.defaults = {}
         definition.defaults.collection = this
         definition.defaults._t = name
-        @models[name] = RemoteModel.extend4000.apply RemoteModel, superclasses.concat(definition)
+
+        coreModelClass = @modelClass or RemoteModel
+        @models[name] = coreModelClass.extend4000.apply coreModelClass, superclasses.concat(definition)
         
     resolveModel: (entry) ->
         keys = _.keys(@models)
@@ -28,6 +35,8 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
         if entry._t and tmp = @models[entry._t] then return tmp
         throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
+
+    modelFromData: (entry) -> new (@resolveModel(entry))(entry)
 
     updateModel: (pattern, data, realm, callback) ->        
         queue = new helpers.queue size: 3        
@@ -70,12 +79,12 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         @find(pattern,limits,
             (err,entry) =>
                 if err then return callback(err)
-                else callback(err, new (@resolveModel(entry))(entry))
+                else callback(err, @modelFromData(entry))
             callbackDone)
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>
-            if (not entry or err) then callback(err) else callback(err, new (@resolveModel(entry))(entry))
+            if (not entry or err) then callback(err) else callback(err, @modelFromData(entry))
 
     fcall: (name,args,pattern,realm,callback,callbackMulti) ->
         @findModel pattern, (err,model) ->
@@ -166,7 +175,6 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
         )
 
     findOne: (args,callback) ->
-#        console.log "stringify request", name: @name(), args
         cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
         @_super 'findOne', args, cb
 
@@ -180,13 +188,11 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         
     addToCache: (uuid,result,timeout) ->
         if not timeout then timeout = @timeout
-#        console.log "adding to cache",uuid
         @cache[uuid] = result
         
         name = new Date().getTime()
         
         @timeouts[name] = helpers.wait timeout, =>
-#            console.log "deleting from cache", uuid
             if @timeouts[name] then delete @timeouts[name]
             if @cache[uuid] then delete @cache[uuid]
 
@@ -198,15 +204,11 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         @cache = {}
 
     findOne: (args, callback) ->
-#        console.log("will cache stringify", @name(), args);
         uuid = JSON.stringify { name: @name(), args: args }
-#        console.log("pass 1")
         if loadCache = @cache[uuid]
-#            console.log "FINDONE CACHE  #{ uuid }"
             callback undefined, loadCache, uuid
             return uuid
 
-#        console.log "FINDONE REQUEST    #{ uuid }"
         @_super 'findOne', args, (err,data,uuid) =>
             reqCache = @addToCache uuid, data
             callback err, data, uuid, reqCache
@@ -215,16 +217,11 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
     find: (args, limits, callback, callbackDone) ->
         if limits.nocache then return @_super 'find', args, limits, callback
-#        console.log("will cache stringify", @name(), args, limits);
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
-#        console.log("pass 1")
         if loadCache = @cache[uuid]
-#            console.log "FIND CACHE      #{ uuid }"
             _.map loadCache, (data) -> callback undefined, data, uuid
             helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
             return uuid
-            
-#        console.log "FIND REQUEST    #{ uuid }"
                                                 
         cache = []
         fail = false
@@ -257,4 +254,46 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         @clearCache()
         @_super 'create', data, callback
 
-exports.classical = Backbone.Model.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
+
+LiveRemoteModel = RemoteModel.extend4000
+    references: 1
+    
+    initialize: ->
+        @settings = @collection.settings.model or {}
+        console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
+        
+    gCollectForce: ->
+        @trigger 'gCollectForce'
+        @trigger 'gCollect'
+        
+    gCollect: ->
+        console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
+        if not --@references then @trigger 'gCollect'
+        
+    newRef: ->
+        @references++
+        console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
+        @
+
+    flush: (args...)->
+        if @settings.autoGcollect then @gCollect()
+        RemoteModel::flush.apply @, args
+        
+    flushStay: (args...) -> RemoteModel::flush.apply @, args
+
+                                                
+LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
+    initialize: -> @liveModels = {}
+    modelClass: LiveRemoteModel
+
+    modelFromData: (entry) ->
+        if liveModel = @liveModels[entry.id] then return liveModel.newRef()
+        @liveModels[entry.id] = liveModel = ModelMixin::modelFromData.call @, entry
+        liveModel.on 'gCollect', =>
+            console.log ">>>> liveModel: #{liveModel.collection.name()} #{liveModel.id} sleep"
+            delete @liveModels[entry.id]
+        return liveModel
+
+exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
+
+
