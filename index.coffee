@@ -116,14 +116,18 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
     collection: undefined
     id: undefined
     
-    toString: -> 'unresolved model ' + @get('id') + ' of collection ' + @get('collection').name()
+    toString: -> "unresolved model #{@id} of collection #{@collection.name()}"
+
+    initialize: ->
+        @when 'id', (id) => @id = id
+        @when 'collection', (collection) =>
+            @collection = collection
 
     resolve: (callback) ->
-        collection = @get 'collection'
-        collection.findOne {id: @get 'id'}, (err,entry) =>
-            if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + collection.get('name'))
+        @collection.findOne {id: @get 'id'}, (err,entry) =>
+            if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
             else
-                @morph collection.resolveModel(entry), _.extend(@attributes, entry)
+                @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
                 helpers.cbc callback, undefined, @
                 
     morph: (myclass,mydata) ->
@@ -136,7 +140,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
 
     remove: (callback) ->
         @del()
-        if id = @get 'id' then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
+        if @id then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
           
     reference: -> { _r: @get('id'), _c: @get('collection').name() }
 
@@ -159,7 +163,6 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
         RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
             if err then return callbackDone err
             @_super( 'findOne', args, callback)
-
 
     unresolved: (id) -> new UnresolvedRemoteModel id: id, collection: @
 

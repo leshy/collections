@@ -212,19 +212,29 @@
     collection: void 0,
     id: void 0,
     toString: function() {
-      return 'unresolved model ' + this.get('id') + ' of collection ' + this.get('collection').name();
+      return "unresolved model " + this.id + " of collection " + (this.collection.name());
+    },
+    initialize: function() {
+      this.when('id', (function(_this) {
+        return function(id) {
+          return _this.id = id;
+        };
+      })(this));
+      return this.when('collection', (function(_this) {
+        return function(collection) {
+          return _this.collection = collection;
+        };
+      })(this));
     },
     resolve: function(callback) {
-      var collection;
-      collection = this.get('collection');
-      return collection.findOne({
+      return this.collection.findOne({
         id: this.get('id')
       }, (function(_this) {
         return function(err, entry) {
           if (!entry) {
-            return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + collection.get('name'));
+            return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + _this.collection.get('name'));
           } else {
-            _this.morph(collection.resolveModel(entry), _.extend(_this.attributes, entry));
+            _this.morph(_this.collection.resolveModel(entry), _.extend(_this.attributes, entry));
             return helpers.cbc(callback, void 0, _this);
           }
         };
@@ -239,9 +249,8 @@
       return this.trigger('del', this);
     },
     remove: function(callback) {
-      var id;
       this.del();
-      if (id = this.get('id')) {
+      if (this.id) {
         return this.collection.remove({
           id: id
         }, helpers.cb(callback));
