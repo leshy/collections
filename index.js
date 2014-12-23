@@ -209,8 +209,6 @@
   exports.collectionDict = {};
 
   UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000({
-    collection: void 0,
-    id: void 0,
     toString: function() {
       return "unresolved model " + this.id + " of collection " + (this.collection.name());
     },

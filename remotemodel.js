@@ -508,6 +508,7 @@
                   return helpers.cbc(callback, err);
                 }
                 _.extend(_this.attributes, _.extend(subchanges, data));
+                _this.trigger('change:id', _this, data.id);
                 helpers.cbc(callback, err, _.extend(subchanges, data));
                 _this.render({}, function(err, data) {
                   if (!err) {

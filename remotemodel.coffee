@@ -294,6 +294,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                         return helpers.cbc callback, err
                         
                     _.extend @attributes, _.extend(subchanges,data)
+                    @trigger 'change:id', @, data.id # when 'id' should trigger
 
                     helpers.cbc callback, err, _.extend(subchanges, data)
 
