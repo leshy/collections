@@ -183,7 +183,6 @@
           if (!_this.collection.subscribeModel) {
             return;
           }
-          console.log("subscribemodel", _this.collection.get('name'), id, _this.get('name'));
           _this.unsubscribe = _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
           return _this.once('del', function() {
             return _this.unsubscribeModel();
@@ -498,8 +497,7 @@
           return _this.exportReferences(changes, function(err, changes) {
             var id;
             if (helpers.isEmpty(changes)) {
-              helpers.cbc(callback);
-              return;
+              return helpers.cbc(callback);
             }
             if (!(id = _this.get('id'))) {
               return _this.collection.create(changes, function(err, data) {

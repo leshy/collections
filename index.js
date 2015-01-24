@@ -240,8 +240,9 @@
     },
     morph: function(myclass, mydata) {
       this.__proto__ = myclass.prototype;
-      this.set(mydata);
-      return this.initialize();
+      _.extend(this.attributes, mydata);
+      this.initialize();
+      return this.trigger('resolve');
     },
     del: function(callback) {
       return this.trigger('del', this);

@@ -83,7 +83,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         @when 'id', (id) =>
             @id = id
             if @autosubscribe or @settings.autosubscribe then @subscribeModel id
-                
+        
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
             @trigger 'anychange'
@@ -108,7 +108,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     subscribeModel: (id) ->
         sub = =>
             if not @collection.subscribeModel then return
-            console.log "subscribemodel", @collection.get('name'), id, @get('name')
             @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
             @once 'del', => @unsubscribeModel()
 
@@ -266,11 +265,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # with model syncing
     # throttle decorator makes sure that we can apply bunch of changes in a series to an object, but the system requests a sync only once.
     # flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
-    flush: (callback) ->
-        @flushnow(callback)
+    flush: (callback) -> @flushnow(callback)
 
     flushnow: (callback) ->
-
         changes = {}
         _.map @changes, (value,property) => changes[property] = @attributes[property]
         changesBak = {}
@@ -287,7 +284,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             _.extend changes, subchanges
             
             @exportReferences changes, (err, changes) =>
-                if helpers.isEmpty(changes) then helpers.cbc(callback); return
+                if helpers.isEmpty(changes) then return helpers.cbc callback
                 if not id = @get 'id' then @collection.create changes, (err,data) =>
                     if err
                         @changes = changesBak
@@ -298,10 +295,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
                     helpers.cbc callback, err, _.extend(subchanges, data)
 
-                    @render {}, (err,data) =>
-                        if not err then @collection.trigger 'create', data
+                    @render {}, (err,data) => if not err then @collection.trigger 'create', data
                     @eventAsync 'post_create', @
-                    
                 else
                     @collection.update { id: id }, changes, (err,data) =>
                         if err then @changes = changesBak

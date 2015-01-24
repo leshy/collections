@@ -128,9 +128,11 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
                 
     morph: (myclass,mydata) ->
         @__proto__ = myclass::
-        @set mydata
+        _.extend @attributes, mydata
+#        @set mydata
         @initialize()
-
+        @trigger 'resolve'
+        
     del: (callback) ->
         @trigger 'del', @
 
