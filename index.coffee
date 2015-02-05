@@ -84,7 +84,10 @@ ModelMixin = exports.ModelMixin = sman.extend4000
 
     findModel: (pattern,callback) ->
         @findOne pattern, (err,entry) =>
-            if (not entry or err) then callback(err) else callback(err, @modelFromData(entry))
+            if (not entry or err)
+                callback(err)
+            else
+                callback(err, @modelFromData(entry))
 
     fcall: (name,args,pattern,realm,callback,callbackMulti) ->
         @findModel pattern, (err,model) ->
