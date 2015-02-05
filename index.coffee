@@ -63,17 +63,18 @@ ModelMixin = exports.ModelMixin = sman.extend4000
             if err then return callback err
             subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
 
-            if data.id then return callback "can't specify id for new model"
+            if data.id then return helpers.cbc callback, "can't specify id for new model"
                             
             try
                 newModel = new (@resolveModel(data))
             catch err
-                return callback err
+                return helpers.cbc callback, err
 
             newModel.update data, realm, (err,data) ->
-                if err then return callback err,data
+                if err then return helpers.cbc callback, err, data
                 newModel.set subchanges
-                newModel.flush (err,data) -> callback err, _.extend(subchanges, data)
+                newModel.flush (err,data) ->
+                    helpers.cbc callback, err, _.extend(subchanges, data)
 
     findModels: (pattern,limits,callback,callbackDone) ->
         @find(pattern,limits,
@@ -98,17 +99,17 @@ EventMixin = exports.EventMixin = Backbone.Model.extend4000
     update: (pattern,update,callback) ->
         @_super 'update', pattern, update, (err,data) =>
             if not err then @trigger 'update', { pattern: pattern, update: update }
-            callback err, data            
+            helpers.cbc callback err, data            
 
-    remove: (data,callback) ->
-        @_super 'remove', data, (err,data) =>
-            if not err then @trigger 'remove', { pattern: data }
-            callback err, data
+    remove: (pattern,callback) ->
+        @_super 'remove', pattern, (err,data) =>
+            if not err then @trigger 'remove', { pattern: pattern }
+            helpers.cbc callback, err, data
 
     create: (data,callback) ->
         @_super 'create', data, (err,data) =>
             if not err then @trigger 'create', { create: data }
-            callback err, data
+            helpers.cbc callback, err, data
             
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality

@@ -113,21 +113,21 @@
             return _.extend(all, data);
           }), {});
           if (data.id) {
-            return callback("can't specify id for new model");
+            return helpers.cbc(callback, "can't specify id for new model");
           }
           try {
             newModel = new (_this.resolveModel(data));
           } catch (_error) {
             err = _error;
-            return callback(err);
+            return helpers.cbc(callback, err);
           }
           return newModel.update(data, realm, function(err, data) {
             if (err) {
-              return callback(err, data);
+              return helpers.cbc(callback, err, data);
             }
             newModel.set(subchanges);
             return newModel.flush(function(err, data) {
-              return callback(err, _.extend(subchanges, data));
+              return helpers.cbc(callback, err, _.extend(subchanges, data));
             });
           });
         };
@@ -176,19 +176,19 @@
               update: update
             });
           }
-          return callback(err, data);
+          return helpers.cbc(callback(err, data));
         };
       })(this));
     },
-    remove: function(data, callback) {
-      return this._super('remove', data, (function(_this) {
+    remove: function(pattern, callback) {
+      return this._super('remove', pattern, (function(_this) {
         return function(err, data) {
           if (!err) {
             _this.trigger('remove', {
-              pattern: data
+              pattern: pattern
             });
           }
-          return callback(err, data);
+          return helpers.cbc(callback, err, data);
         };
       })(this));
     },
@@ -200,7 +200,7 @@
               create: data
             });
           }
-          return callback(err, data);
+          return helpers.cbc(callback, err, data);
         };
       })(this));
     }

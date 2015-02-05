@@ -82,6 +82,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
+            
             if @autosubscribe or @settings.autosubscribe then @subscribeModel id
         
         @on 'change', (model,data) =>
@@ -326,5 +327,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     
     remove: (callback) ->
         @del()
-        if id = @get 'id' then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
+        if not id = @get 'id' then return helpers.cbc callback
+        
+        @collection.remove { id: id }
+        @collection.trigger 'remove', id: id
     

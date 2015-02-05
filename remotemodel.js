@@ -564,13 +564,15 @@
     remove: function(callback) {
       var id;
       this.del();
-      if (id = this.get('id')) {
-        return this.collection.remove({
-          id: id
-        }, helpers.cb(callback));
-      } else {
+      if (!(id = this.get('id'))) {
         return helpers.cbc(callback);
       }
+      this.collection.remove({
+        id: id
+      });
+      return this.collection.trigger('remove', {
+        id: id
+      });
     }
   });
 
