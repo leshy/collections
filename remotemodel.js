@@ -112,7 +112,7 @@
           if (data.matchValue) {
             value = data.matchValue;
           }
-          if (chew = _this.get('chew')) {
+          if (chew = _this.get('chew' || (chew = _this.chew))) {
             return chew.call(model, value, attribute, realm, function(err, newValue) {
               if (err) {
                 return callback(err);

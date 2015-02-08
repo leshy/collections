@@ -53,7 +53,7 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
             if err then return callback err
             if data.matchValue then value = data.matchValue
             
-            if chew = @get 'chew'
+            if chew = @get 'chew' or chew = @chew
                 chew.call model, value, attribute, realm, (err,newValue) ->
                     if err then return callback err else callback null, newValue
             else
