@@ -82,7 +82,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
         @when 'id', (id) =>
             @id = id
-            
             if @autosubscribe or @settings.autosubscribe then @subscribeModel id
         
         @on 'change', (model,data) =>
@@ -109,7 +108,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     subscribeModel: (id) ->
         sub = =>
             if not @collection.subscribeModel then return
-            @unsubscribe = @collection.subscribeModel id, @remoteChangeReceive.bind(@)
+            @unsubscribe = @collection.subscribeModel id, (change) => @remoteChangeReceive(change)
             @once 'del', => @unsubscribeModel()
 
         if not id then @when 'id', (id) sub() else sub() # wait for id?
@@ -159,12 +158,12 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             _check target, callback
 
     remoteChangeReceive: (change) ->
-#        console.log 'remote change receive',change, @attributes       
         switch change.action
             when 'update' then @importReferences change.update, (err,data) =>
+                
                 @set data, { silent: true }
             
-                helpers.dictMap change.update, (value,key) =>
+                helpers.dictMap data, (value,key) =>
                     @trigger 'remotechange:' + key, value
                     @trigger 'anychange:' + key, value
                     
@@ -172,7 +171,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                 @trigger 'anychange'
 
             #when 'update' then @set change.update, { silent: true }
-            
             when 'remove' then @del()
             
     # I need to find nested models here and replace them with their ids
@@ -212,7 +210,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # will find a first permission that matches this realm for this attribute and return it
     applyPermission: (type,attribute,value,realm,callback) ->
         model = @
-        if not attributePermissions = @permissions?[type][attribute] then return callback attribute + " (not defined)"
+        if not attributePermissions = @permissions?[type][attribute] then return callback "access denied (#{attribute})"
 
         async.mapSeries attributePermissions, ((permission,callback) ->
             permission.match model, value, attribute, realm, (err,value) -> callback(value,err)),
@@ -331,4 +329,4 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         
         @collection.remove { id: id }
         @collection.trigger 'remove', id: id
-    
+        

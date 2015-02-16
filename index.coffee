@@ -40,21 +40,23 @@ ModelMixin = exports.ModelMixin = sman.extend4000
 
     updateModel: (pattern, data, realm, callback) ->        
         queue = new helpers.queue size: 3        
-        @findModels pattern, {}, (err,model) ->
+        @findModels pattern, {}, ((err,model) ->
             queue.push model.id, (callback) ->
                 model.update data, realm, (err,data) =>
+                    if model.gCollect then model.gCollect()
                     if err then return callback err, data
                     model.flush (err,fdata) ->
                         if not _.keys(data).length then data = undefined
-                        callback err,data
-                    
-        queue.done callback
+                        callback err,data),
+            -> queue.done callback
 
     removeModel: (pattern, callback) ->
         queue = new helpers.queue size: 3        
         @findModels pattern, {},
         ((err,model) ->
-            queue.push model.id, (callback) -> model.remove callback),
+            queue.push model.id, (callback) ->
+                console.log 'removing!', model.id
+                model.remove callback),
         ((err,data) ->
             queue.done callback )
             
@@ -274,7 +276,7 @@ LiveRemoteModel = RemoteModel.extend4000
     gCollect: ->
         console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
         if not --@references then @trigger 'gCollect'
-        
+    
     newRef: ->
         @references++
         console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
@@ -298,6 +300,7 @@ LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
             console.log ">>>> liveModel: #{liveModel.collection.name()} #{liveModel.id} sleep"
             delete @liveModels[entry.id]
         return liveModel
+
 
 exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
 

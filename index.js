@@ -64,10 +64,13 @@
       queue = new helpers.queue({
         size: 3
       });
-      this.findModels(pattern, {}, function(err, model) {
+      return this.findModels(pattern, {}, (function(err, model) {
         return queue.push(model.id, function(callback) {
           return model.update(data, realm, (function(_this) {
             return function(err, data) {
+              if (model.gCollect) {
+                model.gCollect();
+              }
               if (err) {
                 return callback(err, data);
               }
@@ -80,8 +83,9 @@
             };
           })(this));
         });
+      }), function() {
+        return queue.done(callback);
       });
-      return queue.done(callback);
     },
     removeModel: function(pattern, callback) {
       var queue;
@@ -90,6 +94,7 @@
       });
       return this.findModels(pattern, {}, (function(err, model) {
         return queue.push(model.id, function(callback) {
+          console.log('removing!', model.id);
           return model.remove(callback);
         });
       }), (function(err, data) {

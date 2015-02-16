@@ -183,7 +183,9 @@
           if (!_this.collection.subscribeModel) {
             return;
           }
-          _this.unsubscribe = _this.collection.subscribeModel(id, _this.remoteChangeReceive.bind(_this));
+          _this.unsubscribe = _this.collection.subscribeModel(id, function(change) {
+            return _this.remoteChangeReceive(change);
+          });
           return _this.once('del', function() {
             return _this.unsubscribeModel();
           });
@@ -293,7 +295,7 @@
               _this.set(data, {
                 silent: true
               });
-              helpers.dictMap(change.update, function(value, key) {
+              helpers.dictMap(data, function(value, key) {
                 _this.trigger('remotechange:' + key, value);
                 return _this.trigger('anychange:' + key, value);
               });
@@ -378,7 +380,7 @@
       var attributePermissions, model, _ref;
       model = this;
       if (!(attributePermissions = (_ref = this.permissions) != null ? _ref[type][attribute] : void 0)) {
-        return callback(attribute + " (not defined)");
+        return callback("access denied (" + attribute + ")");
       }
       return async.mapSeries(attributePermissions, (function(permission, callback) {
         return permission.match(model, value, attribute, realm, function(err, value) {
