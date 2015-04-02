@@ -26,15 +26,14 @@ exports.definePermissions = definePermissions = (f) ->
 
 SaveRealm = exports.SaveRealm = new Object()
 
-
 # defines which writes/fcalls to a model are allowed
 # and optionally parses the input data somehow (chew function)
 # permission can behave differently depending on a particular state of a model
 # (optional matchModel validator)
 Permission = exports.Permission = Validator.ValidatedModel.extend4000
     initialize: -> if chew = @get 'chew' then @chew = chew
-    chew: (value,data,callback) -> callback null, value
     match: (model, value, attribute, realm, callback) ->
+        
         matchModel = @get('matchModel') or @matchModel
         matchValue = @get('matchValue') or @matchValue
         matchRealm = @get('matchRealm') or @matchRealm
@@ -53,7 +52,7 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
             if err then return callback err
             if data.matchValue then value = data.matchValue
             
-            if chew = @get 'chew' or chew = @chew
+            if chew = @get('chew') or chew = @chew
                 chew.call model, value, attribute, realm, (err,newValue) ->
                     if err then return callback err else callback null, newValue
             else
@@ -158,14 +157,15 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
             _check target, callback
 
     remoteChangeReceive: (change) ->
+        @changed = true
         switch change.action
             when 'update' then @importReferences change.update, (err,data) =>
                 
                 @set data, { silent: true }
             
                 helpers.dictMap data, (value,key) =>
-                    @trigger 'remotechange:' + key, value
-                    @trigger 'anychange:' + key, value
+                    @trigger 'remotechange:' + key, @, value
+                    @trigger 'anychange:' + key, @, value
                     
                 @trigger 'remotechange'
                 @trigger 'anychange'
@@ -204,11 +204,12 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         if strictPerm
             async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, callback)), callback
         else
-            async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
+            async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type, attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
                 callback undefined, helpers.dictMap data, (x) -> x
 
     # will find a first permission that matches this realm for this attribute and return it
     applyPermission: (type,attribute,value,realm,callback) ->
+
         model = @
         if not attributePermissions = @permissions?[type][attribute] then return callback "access denied (#{attribute})"
 
@@ -297,10 +298,13 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                     @render {}, (err,data) => if not err then @collection.trigger 'create', data
                     @eventAsync 'post_create', @
                 else
+                    console.log 'calling update',changes
                     @collection.update { id: id }, changes, (err,data) =>
                         if err then @changes = changesBak
-                        else @render {}, changes, (err,data) =>
-                            if not err then @collection.trigger 'update', _.extend({id: id}, changes)
+                        else
+                            @event 'post_update', changes
+                            @render {}, changes, (err,data) =>
+                                if not err then @collection.trigger 'update', _.extend({id: id}, data)
                             
                         return helpers.cbc callback, err, data
 

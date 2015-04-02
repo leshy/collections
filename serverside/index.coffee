@@ -1,6 +1,7 @@
 _ = require 'underscore'
 mongo = require './mongodb'
 memory = require './memory'
+
 _.extend exports, collections = require '../index'
 exports.remotemodel = remotemodel = require '../remotemodel'
 

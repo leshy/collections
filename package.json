@@ -1,20 +1,25 @@
 {
-    "name": "collections",
-    "version": "0.0.0",
-    "description": "",
-    "dependencies": {
-        "underscore": "underscore >= 1.3.x",
-        "backbone4000": "git://github.com/leshy/backbone4000.git",
-        "helpers": "git://github.com/leshy/nodejs-helpers.git",
-        "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git",
-        "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
-	"decorators2": "git://github.com/leshy/nodejs-decorators2.git"
-    },
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository" : { "type" : "git", "url" : "git://github.com/leshy/collections.git" },
-    "author": "lesh",
-    "license": "BSD"
+  "name": "collections",
+  "version": "0.0.0",
+  "description": "",
+  "dependencies": {
+    "backbone4000": "git://github.com/leshy/backbone4000.git",
+    "base62": "^1.1.0",
+    "base62-node": "^0.3.1",
+    "decorators2": "git://github.com/leshy/nodejs-decorators2.git",
+    "helpers": "git://github.com/leshy/nodejs-helpers.git",
+    "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
+    "underscore": "underscore >= 1.3.x",
+    "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/leshy/collections.git"
+  },
+  "author": "lesh",
+  "license": "BSD"
 }
