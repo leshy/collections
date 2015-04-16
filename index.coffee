@@ -50,15 +50,11 @@ ModelMixin = exports.ModelMixin = sman.extend4000
                         callback err,data),
             -> queue.done callback
 
-    removeModel: (pattern, callback) ->
+    removeModel: (pattern, realm, callback) ->
         queue = new helpers.queue size: 3        
         @findModels pattern, {},
-        ((err,model) ->
-            queue.push model.id, (callback) ->
-                console.log 'removing!', model.id
-                model.remove callback),
-        ((err,data) ->
-            queue.done callback )
+        ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
+        ((err,data) -> queue.done callback)
             
     createModel: (data,realm,callback) ->
         @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>

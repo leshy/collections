@@ -177,14 +177,15 @@
       var sub;
       sub = (function(_this) {
         return function() {
+          var unsub;
           if (!_this.collection.subscribeModel) {
             return;
           }
-          _this.unsubscribe = _this.collection.subscribeModel(id, function(change) {
+          unsub = _this.collection.subscribeModel(id, function(change) {
             return _this.remoteChangeReceive(change);
           });
           return _this.once('del', function() {
-            return _this.unsubscribeModel();
+            return unsub();
           });
         };
       })(this);
@@ -193,9 +194,6 @@
       } else {
         return sub();
       }
-    },
-    unsubscribeModel: function() {
-      return true;
     },
     reference: function(id) {
       if (id == null) {
@@ -571,7 +569,7 @@
       }
       this.collection.remove({
         id: id
-      });
+      }, callback);
       return this.collection.trigger('remove', {
         id: id
       });

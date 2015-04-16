@@ -107,13 +107,10 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     subscribeModel: (id) ->
         sub = =>
             if not @collection.subscribeModel then return
-            @unsubscribe = @collection.subscribeModel id, (change) => @remoteChangeReceive(change)
-            @once 'del', => @unsubscribeModel()
+            unsub = @collection.subscribeModel id, (change) => @remoteChangeReceive(change)
+            @once 'del', => unsub()
 
         if not id then @when 'id', (id) sub() else sub() # wait for id?
-    
-    unsubscribeModel: () -> true
-    
     # get a reference for this model
     reference: (id=@get 'id') -> { _r: id, _c: @collection.name() }
 
@@ -312,10 +309,11 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         else @eventAsync 'create', changes, continue1
 
     render: (realm, data, callback) ->
+
         if data.constructor is Function
             callback = data
             data = @attributes
-            
+
         @exportReferences data, (err,data) =>
             @applyPermissions('read',
                 data,
@@ -330,7 +328,6 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     remove: (callback) ->
         @del()
         if not id = @get 'id' then return helpers.cbc callback
-        
-        @collection.remove { id: id }
+        @collection.remove { id: id }, callback
         @collection.trigger 'remove', id: id
         

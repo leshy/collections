@@ -87,14 +87,13 @@
         return queue.done(callback);
       });
     },
-    removeModel: function(pattern, callback) {
+    removeModel: function(pattern, realm, callback) {
       var queue;
       queue = new helpers.queue({
         size: 3
       });
       return this.findModels(pattern, {}, (function(err, model) {
         return queue.push(model.id, function(callback) {
-          console.log('removing!', model.id);
           return model.remove(callback);
         });
       }), (function(err, data) {
