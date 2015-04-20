@@ -48,7 +48,8 @@ ModelMixin = exports.ModelMixin = sman.extend4000
                     model.flush (err,fdata) ->
                         if not _.keys(data).length then data = undefined
                         callback err,data),
-            -> queue.done callback
+            ->
+                queue.done callback
 
     removeModel: (pattern, realm, callback) ->
         queue = new helpers.queue size: 3        
