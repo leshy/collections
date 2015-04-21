@@ -63,7 +63,7 @@ ModelMixin = exports.ModelMixin = sman.extend4000
             subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
 
             if data.id then return helpers.cbc callback, "can't specify id for new model"
-                            
+            
             try
                 newModel = new (@resolveModel(data))
             catch err

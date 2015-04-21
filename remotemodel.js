@@ -114,11 +114,11 @@
               if (err) {
                 return callback(err);
               } else {
-                return callback(null, newValue);
+                return callback(void 0, newValue);
               }
             });
           } else {
-            return callback(null, value);
+            return callback(void 0, value);
           }
         };
       })(this));
@@ -373,22 +373,32 @@
       }
     },
     applyPermission: function(type, attribute, value, realm, callback) {
-      var attributePermissions, model, ref1;
+      var attributePermissions, checkperm, model, permission, permissions, ref1;
       model = this;
       if (!(attributePermissions = (ref1 = this.permissions) != null ? ref1[type][attribute] : void 0)) {
-        return callback("access denied (" + attribute + ")");
+        return callback("Access Denied to" + attribute + ": No Permission");
       }
-      return async.mapSeries(attributePermissions, (function(permission, callback) {
-        return permission.match(model, value, attribute, realm, function(err, value) {
-          return callback(value, err);
+      permissions = _.clone(attributePermissions);
+      permission = permissions.pop();
+      checkperm = function(permissions, callback) {
+        return permissions.pop().match(model, value, attribute, realm, function(err, value) {
+          if (!err) {
+            return callback(void 0, value);
+          }
+          if (!permissions.length) {
+            return callback(err);
+          }
+          return checkperm(permissions, callback);
         });
-      }), function(value, err) {
-        err = _.last(err);
-        if (err || !value) {
-          return callback('access denied');
-        } else {
-          return callback(null, value);
+      };
+      return checkperm(_.clone(attributePermissions), function(err, value) {
+        if (err) {
+          return callback("Access Denied to " + attribute + ": " + err);
         }
+        if (value === void 0) {
+          return callback("Access Denied to " + attribute + ": No Value");
+        }
+        return callback(void 0, value);
       });
     },
     exportReferences: function(data, callback) {

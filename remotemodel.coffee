@@ -54,9 +54,10 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
             
             if chew = @get('chew') or chew = @chew
                 chew.call model, value, attribute, realm, (err,newValue) ->
-                    if err then return callback err else callback null, newValue
+                    if err then callback err
+                    else callback undefined, newValue
             else
-                callback null, value
+                callback undefined, value
 
 
 # knows about its collection, knows how to store/create itself and defines the permissions
@@ -208,14 +209,22 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     applyPermission: (type,attribute,value,realm,callback) ->
 
         model = @
-        if not attributePermissions = @permissions?[type][attribute] then return callback "access denied (#{attribute})"
+        if not attributePermissions = @permissions?[type][attribute] then return callback "Access Denied to#{attribute}: No Permission"
+            
+        permissions = _.clone attributePermissions
 
-        async.mapSeries attributePermissions, ((permission,callback) ->
-            permission.match model, value, attribute, realm, (err,value) -> callback(value,err)),
-            (value, err) ->
-                err = _.last(err)
-#                if err then console.log "permission denied: ",err
-                if err or not value then callback 'access denied' else callback null, value
+        permission = permissions.pop()
+
+        checkperm = (permissions, callback) ->
+            permissions.pop().match model, value, attribute, realm, (err,value) ->
+                if not err then return callback undefined, value
+                if not permissions.length then return callback err
+                return checkperm permissions, callback
+
+        checkperm _.clone(attributePermissions), (err,value) ->
+            if err then return callback("Access Denied to #{attribute}: #{err}")
+            if value is undefined then return callback("Access Denied to #{attribute}: No Value") 
+            callback undefined, value
             
     # looks for references to remote models and replaces them with object ids
     # what do we do if a reference object is not flushed? propagade flush call for now
