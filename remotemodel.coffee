@@ -181,8 +181,13 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # mark some attributes as dirty (to be saved)
     # needs to be done explicitly when changing dictionaries or arrays in attributes as change() won't catch this
     # or you can call set _clone(property)
-    dirty: (attribute) -> @changes[attribute] = true
-    touch: (attribute) -> @changes[attribute] = true
+    dirty: (attribute) ->
+        @changes[attribute] = true
+        @trigger 'change:' + attribute, @, @get(attribute)
+        
+    touch: (attribute) ->
+        @changes[attribute] = true
+        @trigger 'change:' + attribute, @, @get(attribute)
 
     localCallPropagade: (name,args,callback) ->
         @collection.fcall name, args, { id: @id }, callback

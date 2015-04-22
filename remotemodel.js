@@ -312,10 +312,12 @@
       }));
     },
     dirty: function(attribute) {
-      return this.changes[attribute] = true;
+      this.changes[attribute] = true;
+      return this.trigger('change:' + attribute, this, this.get(attribute));
     },
     touch: function(attribute) {
-      return this.changes[attribute] = true;
+      this.changes[attribute] = true;
+      return this.trigger('change:' + attribute, this, this.get(attribute));
     },
     localCallPropagade: function(name, args, callback) {
       return this.collection.fcall(name, args, {
