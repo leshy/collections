@@ -2,7 +2,6 @@ Backbone = require 'backbone4000'
 _ = require 'underscore'
 helpers = require 'helpers'
 Validator = require 'validator2-extras'; v = Validator.v; Select = Validator.Select
-decorators = require 'decorators2'; decorate = decorators.decorate;
 async = require 'async'
 collections = require './index'
 subscriptionman2 = require 'subscriptionman2'
