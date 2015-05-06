@@ -321,8 +321,10 @@
       }, callback);
     },
     remoteCallReceive: function(name, args, realm, callback, callbackMulti) {
+      console.log("GET", args);
       return this.applyPermission('execute', name, args, realm, (function(_this) {
         return function(err, args, permission) {
+          console.log("APPLYPERM GOT", err, args);
           if (err) {
             callback(err);
             return;

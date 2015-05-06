@@ -192,7 +192,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         @collection.fcall name, args, { id: @id }, callback
 
     remoteCallReceive: (name,args,realm,callback,callbackMulti) ->
+        console.log "GET", args
         @applyPermission 'execute', name, args, realm, (err,args,permission) =>
+            console.log "APPLYPERM GOT",err,args
             if err then callback(err); return
             @[name].apply @, args.concat(callback,callbackMulti)
 

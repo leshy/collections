@@ -28,7 +28,7 @@ ModelMixin = exports.ModelMixin = sman.extend4000
 
         coreModelClass = @modelClass or RemoteModel
         @models[name] = coreModelClass.extend4000.apply coreModelClass, superclasses.concat(definition)
-        
+
     resolveModel: (entry) ->
         keys = _.keys(@models)
         if keys.length is 0 then throw "I don't have any models defined"
@@ -38,8 +38,8 @@ ModelMixin = exports.ModelMixin = sman.extend4000
 
     modelFromData: (entry) -> new (@resolveModel(entry))(entry)
 
-    updateModel: (pattern, data, realm, callback) ->        
-        queue = new helpers.queue size: 3        
+    updateModel: (pattern, data, realm, callback) ->
+        queue = new helpers.queue size: 3
         @findModels pattern, {}, ((err,model) ->
             queue.push model.id, (callback) ->
                 model.update data, realm, (err,data) =>
@@ -52,18 +52,18 @@ ModelMixin = exports.ModelMixin = sman.extend4000
                 queue.done callback
 
     removeModel: (pattern, realm, callback) ->
-        queue = new helpers.queue size: 3        
+        queue = new helpers.queue size: 3
         @findModels pattern, {},
         ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
         ((err,data) -> queue.done callback)
-            
+
     createModel: (data,realm,callback) ->
         @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
             if err then return callback err
             subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
 
             if data.id then return helpers.cbc callback, "can't specify id for new model"
-            
+
             try
                 newModel = new (@resolveModel(data))
             catch err
@@ -98,7 +98,7 @@ EventMixin = exports.EventMixin = Backbone.Model.extend4000
     update: (pattern,update,callback) ->
         @_super 'update', pattern, update, (err,data) =>
             if not err then @trigger 'update', { pattern: pattern, update: update }
-            helpers.cbc callback err, data            
+            helpers.cbc callback err, data
 
     remove: (pattern,callback) ->
         @_super 'remove', pattern, (err,data) =>
@@ -109,13 +109,13 @@ EventMixin = exports.EventMixin = Backbone.Model.extend4000
         @_super 'create', data, (err,data) =>
             if not err then @trigger 'create', { create: data }
             helpers.cbc callback, err, data
-            
+
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
 
 exports.collectionDict = {} # global dict holding all collections.. nasty but required to resolve references, shouldn't be global in theory but I can't invision the need to communicate multiple databases with same collection names right now.
 
-UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000    
+UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000
     toString: -> "unresolved model #{@id} of collection #{@collection.name()}"
 
     initialize: ->
@@ -130,21 +130,21 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
                 console.log "FINDONE GOT",err,entry
                 @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
                 helpers.cbc callback, undefined, @
-                
+
     morph: (myclass,mydata) ->
         @__proto__ = myclass::
         _.extend @attributes, mydata
 #        @set mydata
         @initialize()
         @trigger 'resolve'
-        
+
     del: (callback) ->
         @trigger 'del', @
 
     remove: (callback) ->
         @del()
         if @id then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
-          
+
     reference: -> { _r: @get('id'), _c: @get('collection').name() }
 
 
@@ -160,7 +160,7 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
         RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
             if err then return callbackDone err
             @_super( 'find', args, limits, callback, callbackDone)
-            
+
     # will translate a model to its reference its found in findOne arguments
     findOne: (args,callback) ->
         RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
@@ -187,23 +187,23 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
 
 CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
     timeout: helpers.Minute
-    
+
     initialize: ->
         @cache = {}
         @timeouts = {}
-        
+
     addToCache: (uuid,result,timeout) ->
         if not timeout then timeout = @timeout
         @cache[uuid] = result
-        
+
         name = new Date().getTime()
-        
+
         @timeouts[name] = helpers.wait timeout, =>
             if @timeouts[name] then delete @timeouts[name]
             if @cache[uuid] then delete @cache[uuid]
 
         result
-        
+
     clearCache: ->
         _.map @timeouts, (f,name) -> f()
         @timeouts = {}
@@ -218,7 +218,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         @_super 'findOne', args, (err,data,uuid) =>
             reqCache = @addToCache uuid, data
             callback err, data, uuid, reqCache
-            
+
         return uuid
 
     find: (args, limits, callback, callbackDone) ->
@@ -228,7 +228,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
             _.map loadCache, (data) -> callback undefined, data, uuid
             helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
             return uuid
-                                                
+
         cache = []
         fail = false
         @_super('find', args, limits,
@@ -237,15 +237,15 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
                 if not fail
                     if err then fail = true
                     else cache.push data
-                    
+
                 callback err, data, uuid
-                
+
             (err, done, uuid) =>
                 reqCache = @addToCache uuid, cache
                 helpers.cbc callbackDone, err, done, uuid, reqCache
 
             )
-            
+
         return uuid
 
     update: (filter,update,callback) ->
@@ -263,19 +263,19 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
 LiveRemoteModel = RemoteModel.extend4000
     references: 1
-    
+
     initialize: ->
         @settings = @collection.settings.model or {}
         console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
-        
+
     gCollectForce: ->
         @trigger 'gCollectForce'
         @trigger 'gCollect'
-        
+
     gCollect: ->
         console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
         if not --@references then @trigger 'gCollect'
-    
+
     newRef: ->
         @references++
         console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
@@ -284,10 +284,10 @@ LiveRemoteModel = RemoteModel.extend4000
     flush: (args...)->
         if @settings.autoGcollect then @gCollect()
         RemoteModel::flush.apply @, args
-        
+
     flushStay: (args...) -> RemoteModel::flush.apply @, args
 
-                                                
+
 LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
     initialize: -> @liveModels = {}
     modelClass: LiveRemoteModel
@@ -302,5 +302,3 @@ LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
 
 
 exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
-
-
