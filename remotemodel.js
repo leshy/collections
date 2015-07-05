@@ -321,10 +321,8 @@
       }, callback);
     },
     remoteCallReceive: function(name, args, realm, callback, callbackMulti) {
-      console.log("GET", args);
       return this.applyPermission('execute', name, args, realm, (function(_this) {
         return function(err, args, permission) {
-          console.log("APPLYPERM GOT", err, args);
           if (err) {
             callback(err);
             return;
@@ -524,7 +522,6 @@
                 return _this.eventAsync('post_create', _this);
               });
             } else {
-              console.log('calling update', changes);
               return _this.collection.update({
                 id: id
               }, changes, function(err, data) {

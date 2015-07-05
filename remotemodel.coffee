@@ -192,9 +192,9 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         @collection.fcall name, args, { id: @id }, callback
 
     remoteCallReceive: (name,args,realm,callback,callbackMulti) ->
-        console.log "GET", args
+        #console.log "GET", args
         @applyPermission 'execute', name, args, realm, (err,args,permission) =>
-            console.log "APPLYPERM GOT",err,args
+            #console.log "APPLYPERM GOT",err,args
             if err then callback(err); return
             @[name].apply @, args.concat(callback,callbackMulti)
 
@@ -310,7 +310,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
                     @render {}, (err,data) => if not err then @collection.trigger 'create', data
                     @eventAsync 'post_create', @
                 else
-                    console.log 'calling update',changes
+                    #console.log 'calling update',changes
                     @collection.update { id: id }, changes, (err,data) =>
                         if err then @changes = changesBak
                         else

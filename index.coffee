@@ -223,6 +223,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
     find: (args, limits, callback, callbackDone) ->
         if limits.nocache then return @_super 'find', args, limits, callback
+
         uuid = JSON.stringify { name: @name(), args: args, limits: limits }
         if loadCache = @cache[uuid]
             _.map loadCache, (data) -> callback undefined, data, uuid
@@ -262,23 +263,23 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
 
 LiveRemoteModel = RemoteModel.extend4000
-    references: 1
+    references: 0
 
     initialize: ->
         @settings = @collection.settings.model or {}
-        console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
+        #console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
 
     gCollectForce: ->
         @trigger 'gCollectForce'
         @trigger 'gCollect'
 
     gCollect: ->
-        console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
+        #console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
         if not --@references then @trigger 'gCollect'
 
     newRef: ->
         @references++
-        console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
+        #console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
         @
 
     flush: (args...)->
@@ -287,18 +288,30 @@ LiveRemoteModel = RemoteModel.extend4000
 
     flushStay: (args...) -> RemoteModel::flush.apply @, args
 
+    hold: (callback) ->
+      model = @collection.hold @
+      callback.call model, -> model.gCollect()
 
 LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
     initialize: -> @liveModels = {}
     modelClass: LiveRemoteModel
 
+    hold: (model) ->
+        if liveModel = @liveModels[model.id] then liveModel.newRef()
+        else
+            #console.log ">>>> liveModel: #{@name()} #{model.id} -- HOLD"
+
+            liveModel = @liveModels[model.id] = model.newRef()
+            liveModel.once 'gCollect', =>
+                #console.log 'gcollecting', model.id
+                delete @liveModels[model.id]
+            liveModel.trigger 'live'
+            liveModel
+    
     modelFromData: (entry) ->
-        if liveModel = @liveModels[entry.id] then return liveModel.newRef()
-        @liveModels[entry.id] = liveModel = ModelMixin::modelFromData.call @, entry
-        liveModel.on 'gCollect', =>
-            console.log ">>>> liveModel: #{liveModel.collection.name()} #{liveModel.id} sleep"
-            delete @liveModels[entry.id]
-        return liveModel
+        if liveModel = @liveModels[entry.id] then liveModel.newRef()
+        else ModelMixin::modelFromData.call @, entry
 
 
 exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
+
