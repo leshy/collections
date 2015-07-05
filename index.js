@@ -68,9 +68,6 @@
         return queue.push(model.id, function(callback) {
           return model.update(data, realm, (function(_this) {
             return function(err, data) {
-              if (model.gCollect) {
-                model.gCollect();
-              }
               if (err) {
                 return callback(err, data);
               }

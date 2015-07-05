@@ -43,7 +43,6 @@ ModelMixin = exports.ModelMixin = sman.extend4000
         @findModels pattern, {}, ((err,model) ->
             queue.push model.id, (callback) ->
                 model.update data, realm, (err,data) =>
-                    if model.gCollect then model.gCollect()
                     if err then return callback err, data
                     model.flush (err,fdata) ->
                         if not _.keys(data).length then data = undefined
