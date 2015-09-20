@@ -4,8 +4,6 @@
   "description": "",
   "dependencies": {
     "backbone4000": "git://github.com/leshy/backbone4000.git",
-    "base62": "^1.1.0",
-    "base62-node": "^0.3.1",
     "helpers": "git://github.com/leshy/nodejs-helpers.git",
     "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
     "underscore": "^1.8.3",

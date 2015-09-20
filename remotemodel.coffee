@@ -36,17 +36,19 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
     matchModel = @get('matchModel') or @matchModel
     matchValue = @get('matchValue') or @matchValue
     matchRealm = @get('matchRealm') or @matchRealm
-    if not matchModel and not matchRealm and not matchValue then return callback undefined, value
+
+    if (not matchModel) and (not matchRealm) and (not matchValue) then return callback undefined, value
+    console.log 'applying permission for', attribute, value
     async.series {
       matchRealm: (callback) =>
         if not (validator = matchRealm) then callback()
-        else v(validator).feed realm, callback
+        else validator.feed realm, callback
       matchModel: (callback) =>
         if not (validator = matchModel) then callback()
-        else v(validator).feed model.attributes, callback
+        else validator.feed model.attributes, callback
       matchValue: (callback) =>
         if not (validator = matchValue) then callback()
-        else v(validator).feed value, callback
+        else validator.feed value, callback
     }, (err,data) =>
       if err then return callback err
       if data.matchValue then value = data.matchValue
@@ -67,8 +69,7 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
 # it will also subscribe to changes to its id on its collection, so it will update itself (remoteChangeReceive) with remote data
 #
 # it also has localCallPropagade and remoteCallReceive for remote function calling
-RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
-  validator: v { collection: 'instance' }
+RemoteModel = exports.RemoteModel = sman.extend4000
 
   initialize: ->
     @settings = _.extend {}, @settings, @get('settings')
@@ -81,7 +82,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # once the object has been saved, we can request a subscription to its changes (this will be automatic for in the future)
     @when 'id', (id) =>
       @id = id
-      if @autosubscribe or @settings.autosubscribe then @subscribeModel id
+      if @autosubscribe or @settings.autosubscribe then @subscribeModel()
 
     @on 'change', (model,data) =>
       @localChangePropagade(model,data)
@@ -104,17 +105,24 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
 #      callback(null, @)
 
-  subscribeModel: (id) ->
-    sub = =>
+  subscribeModel: ->
+    sub = (id) =>
       if not @collection.subscribeModel then return
-      unsub = @collection.subscribeModel id, (change) => @remoteChangeReceive(change)
-      @once 'del', => unsub()
+      @trigger 'subscribeModel'
+      @_unsub = @collection.subscribeModel id, (change) => @remoteChangeReceive(change)
+      @once 'del', => @unsubscribeModel()
 
-    if not id then @when 'id', (id) sub() else sub() # wait for id?
+    if not @id then @when 'id', (id) sub(id) else sub(@id) # wait for id?
+
+  unsubscribeModel: ->
+    if not @_unsub then throw "can't unsubscribe this model. it's not subscribed yet"
+    @_unsub()
+    @trigger 'unsubscribeModel'
+
   # get a reference for this model
   reference: (id=@get 'id') -> { _r: id, _c: @collection.name() }
 
-  depthfirst: (callback,target=@attributes) ->
+  depthfirst: (callback,target=attributes) ->
     if target.constructor is Object or target.constructor is Array
       target = _.clone target
       for key of target
@@ -180,13 +188,12 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
   # mark some attributes as dirty (to be saved)
   # needs to be done explicitly when changing dictionaries or arrays in attributes as change() won't catch this
   # or you can call set _clone(property)
-  dirty: (attribute) ->
-    @changes[attribute] = true
-    @trigger 'change:' + attribute, @, @get(attribute)
+  dirty: (args...) -> @touch.apply @, args
 
-  touch: (attribute) ->
-    @changes[attribute] = true
-    @trigger 'change:' + attribute, @, @get(attribute)
+  touch: (args...) ->
+    _.each args, (attribute) =>
+      @changes[attribute] = true
+      @trigger 'change:' + attribute, @, @get(attribute)
 
   localCallPropagade: (name,args,callback) ->
     @collection.fcall name, args, { id: @id }, callback
@@ -242,8 +249,8 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         if id = value.get('id') then callback undefined, value.reference(id)
         else # if not, flush it, and then create a proper reference
           value.flush (err,id) ->
-          if err then callback(err,id)
-          else callback undefined, value.reference(id)
+          if err then helpers.cbc callback, err,id
+          else helpers.cbc callback, undefined, value.reference(id)
         return undefined
       else if value instanceof collections.UnresolvedRemoteModel
         value.reference()
@@ -257,7 +264,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
 
     _resolve_reference = (ref) =>
       if not targetcollection = @collection.getcollection(ref._c) then throw 'unknown collection "' + ref._c + '"'
-      else targetcollection.unresolved(ref._r)
+      else targetcollection.unresolved(ref)
 
     refcheck = v { _r: "String", _c: "String" }
 
@@ -301,13 +308,13 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
           if err
             @changes = changesBak
             return helpers.cbc callback, err
-
           _.extend @attributes, _.extend(subchanges,data)
           @trigger 'change:id', @, data.id # when 'id' should trigger
 
           helpers.cbc callback, err, _.extend(subchanges, data)
 
           @render {}, (err,data) => if not err then @collection.trigger 'create', data
+          @collection.trigger 'createModel', @
           @eventAsync 'post_create', @
         else
           #console.log 'calling update',changes

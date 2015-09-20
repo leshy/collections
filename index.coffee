@@ -12,305 +12,316 @@ settings.model = {}
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
 
 Core = exports.Core = Backbone.Model.extend4000
-    initialize: ->
-        @settings = _.extend {}, settings, @settings, @get('settings')
+  initialize: ->
+    @settings = _.extend {}, settings, @settings, @get('settings')
 
 # this can be mixed into a RemoteCollection or Collection itself
 # it adds findModel method that automatically instantiates propper models for query results depeding on the _t property
 ModelMixin = exports.ModelMixin = sman.extend4000
-    initialize: ->
-        @models = {}
+  initialize: ->
+    @models = {}
 
-    defineModel: (name,superclasses...,definition) ->
-        if not definition.defaults? then definition.defaults = {}
-        definition.defaults.collection = this
-        definition.defaults._t = name
+  defineModel: (name,superclasses...,definition) ->
+    if not definition.defaults? then definition.defaults = {}
+    definition.defaults.collection = this
+    definition.defaults._t = name
 
-        coreModelClass = @modelClass or RemoteModel
-        @models[name] = coreModelClass.extend4000.apply coreModelClass, superclasses.concat(definition)
+    coreModelClass = @modelClass or RemoteModel
+    @models[name] = coreModelClass.extend4000.apply coreModelClass, superclasses.concat(definition)
 
-    resolveModel: (entry) ->
-        keys = _.keys(@models)
-        if keys.length is 0 then throw "I don't have any models defined"
-        if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
-        if entry._t and tmp = @models[entry._t] then return tmp
-        throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
+  resolveModel: (entry) ->
+    keys = _.keys(@models)
+    if keys.length is 0 then throw "I don't have any models defined"
+    if keys.length is 1 or not entry._t? then return @models[_.first(keys)]
+    if entry._t and tmp = @models[entry._t] then return tmp
+    throw "unable to resolve " + JSON.stringify(entry) + " " + _.keys(@models).join ", "
 
-    modelFromData: (entry) -> new (@resolveModel(entry))(entry)
+  modelFromData: (entry) ->
+    new (@resolveModel(entry))(entry)
 
-    updateModel: (pattern, data, realm, callback) ->
-        queue = new helpers.queue size: 3
-        @findModels pattern, {}, ((err,model) ->
-            queue.push model.id, (callback) ->
-                model.update data, realm, (err,data) =>
-                    if err then return callback err, data
-                    model.flush (err,fdata) ->
-                        if not _.keys(data).length then data = undefined
-                        callback err,data),
-            ->
-                queue.done callback
+  updateModel: (pattern, data, realm, callback) ->
+    queue = new helpers.queue size: 3
+    @findModels pattern, {}, ((err,model) ->
+      queue.push model.id, (callback) ->
+        model.update data, realm, (err,data) =>
+          if err then return callback err, data
+          model.flush (err,fdata) ->
+            if not _.keys(data).length then data = undefined
+            callback err,data),
+      ->
+        queue.done callback
 
-    removeModel: (pattern, realm, callback) ->
-        queue = new helpers.queue size: 3
-        @findModels pattern, {},
-        ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
-        ((err,data) -> queue.done callback)
+  removeModel: (pattern, realm, callback) ->
+    queue = new helpers.queue size: 3
+    @findModels pattern, {},
+    ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
+    ((err,data) -> queue.done callback)
 
-    createModel: (data,realm,callback) ->
-        @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
-            if err then return callback err
-            subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
+  createModel: (data,realm,callback) ->
+    @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
+      if err then return callback err
+      subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
 
-            if data.id then return helpers.cbc callback, "can't specify id for new model"
+      if data.id then return helpers.cbc callback, "can't specify id for new model"
+      
+      try
+        newModel = new (@resolveModel(data))
+      catch err
+        return helpers.cbc callback, err
 
-            try
-                newModel = new (@resolveModel(data))
-            catch err
-                return helpers.cbc callback, err
+      newModel.update data, realm, (err,data) ->
+        if err then return helpers.cbc callback, err, data
+        newModel.set subchanges
+        newModel.flush (err,data) ->
+          helpers.cbc callback, err, _.extend(subchanges, data)
 
-            newModel.update data, realm, (err,data) ->
-                if err then return helpers.cbc callback, err, data
-                newModel.set subchanges
-                newModel.flush (err,data) ->
-                    helpers.cbc callback, err, _.extend(subchanges, data)
+  findModels: (pattern,limits,callback,callbackDone) ->
+    @find(pattern,limits,
+      (err,entry) =>
+        if err then return callback(err)
+        else callback(err, @modelFromData(entry))
+      callbackDone)
 
-    findModels: (pattern,limits,callback,callbackDone) ->
-        @find(pattern,limits,
-            (err,entry) =>
-                if err then return callback(err)
-                else callback(err, @modelFromData(entry))
-            callbackDone)
+  findModel: (pattern,callback) ->
+    @findOne pattern, (err,entry) =>
+      if (not entry or err)
+        callback(err)
+      else
+        callback(err, @modelFromData(entry))
 
-    findModel: (pattern,callback) ->
-        @findOne pattern, (err,entry) =>
-            if (not entry or err)
-                callback(err)
-            else
-                callback(err, @modelFromData(entry))
-
-    fcall: (name,args,pattern,realm,callback,callbackMulti) ->
-        @findModel pattern, (err,model) ->
-            if model then model.remoteCallReceive name, args, realm, callback, callbackMulti
-            else callback 'model not found'
+  fcall: (name,args,pattern,realm,callback,callbackMulti) ->
+    @findModel pattern, (err,model) ->
+      if model then model.remoteCallReceive name, args, realm, callback, callbackMulti
+      else callback 'model not found'
 
 EventMixin = exports.EventMixin = Backbone.Model.extend4000
-    update: (pattern,update,callback) ->
-        @_super 'update', pattern, update, (err,data) =>
-            if not err then @trigger 'update', { pattern: pattern, update: update }
-            helpers.cbc callback err, data
+  update: (pattern,update,callback) ->
+    @_super 'update', pattern, update, (err,data) =>
+      if not err then @trigger 'update', { pattern: pattern, update: update }
+      helpers.cbc callback err, data
 
-    remove: (pattern,callback) ->
-        @_super 'remove', pattern, (err,data) =>
-            if not err then @trigger 'remove', { pattern: pattern }
-            helpers.cbc callback, err, data
+  remove: (pattern,callback) ->
+    @_super 'remove', pattern, (err,data) =>
+      if not err then @trigger 'remove', { pattern: pattern }
+      helpers.cbc callback, err, data
 
-    create: (data,callback) ->
-        @_super 'create', data, (err,data) =>
-            if not err then @trigger 'create', { create: data }
-            helpers.cbc callback, err, data
+  create: (data,callback) ->
+    @_super 'create', data, (err,data) =>
+      if not err then @trigger 'create', { create: data }
+      helpers.cbc callback, err, data
 
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
 
 exports.collectionDict = {} # global dict holding all collections.. nasty but required to resolve references, shouldn't be global in theory but I can't invision the need to communicate multiple databases with same collection names right now.
 
-UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000
-    toString: -> "unresolved model #{@id} of collection #{@collection.name()}"
+UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000    
+  toString: -> "unresolved model #{@id} of collection #{@collection.name()}"
+  
+  initialize: ->
+    @when 'id', (id) => @id = id
+    @when 'collection', (collection) => @collection = collection
 
-    initialize: ->
-        @when 'id', (id) => @id = id
-        @when 'collection', (collection) => @collection = collection
+  resolve: (callback) ->
+    @collection.findOne {id: @get 'id'}, (err,entry) =>
+      if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
+      else
+        @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
+        helpers.cbc callback, undefined, @
 
-    resolve: (callback) ->
-        console.log "FINDONE", @get 'id'
-        @collection.findOne {id: @get 'id'}, (err,entry) =>
-            if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
-            else
-                console.log "FINDONE GOT",err,entry
-                @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
-                helpers.cbc callback, undefined, @
+  morph: (myclass,mydata) ->
+    @__proto__ = myclass::
+    _.extend @attributes, mydata
+#    @set mydata
+    @initialize()
+    @trigger 'resolve'
 
-    morph: (myclass,mydata) ->
-        @__proto__ = myclass::
-        _.extend @attributes, mydata
-#        @set mydata
-        @initialize()
-        @trigger 'resolve'
+  del: (callback) -> @trigger 'del', @
 
-    del: (callback) ->
-        @trigger 'del', @
+  remove: (callback) ->
+    @del()
+    if @id then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
 
-    remove: (callback) ->
-        @del()
-        if @id then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
-
-    reference: -> { _r: @get('id'), _c: @get('collection').name() }
+  reference: ->
+    ref = _.extend {}, @attributes # clone
+    ref._r = ref.id
+    delete ref.id
+    
+    ref._c = @get('collection').name()
+    delete ref.collection
+    
+    ref
 
 
 ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
-    initialize: ->
-        @collectionDict = exports.collectionDict
-        @when 'name', (name) => @collectionDict[name] = @
+  initialize: ->
+    @collectionDict = exports.collectionDict
+    @when 'name', (name) => @collectionDict[name] = @
 
-    getcollection: (name) -> @collectionDict[name]
+  getcollection: (name) -> @collectionDict[name]
 
-    # will translate a model to its reference its found in find arguments
-    find: (args,limits,callback,callbackDone) ->
-        RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
-            if err then return callbackDone err
-            @_super( 'find', args, limits, callback, callbackDone)
+  # will translate a model to its reference its found in find arguments
+  find: (args,limits,callback,callbackDone) ->
+    RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
+      if err then return callbackDone err
+      @_super( 'find', args, limits, callback, callbackDone)
 
-    # will translate a model to its reference its found in findOne arguments
-    findOne: (args,callback) ->
-        RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
-            if err then return callbackDone err
-            @_super( 'findOne', args, callback)
+  # will translate a model to its reference its found in findOne arguments
+  findOne: (args,callback) ->
+    RemoteModel::exportReferences.call RemoteModel::, args, (err,args) =>
+      if err then return callbackDone err
+      @_super( 'findOne', args, callback)
 
-    unresolved: (id) -> new UnresolvedRemoteModel id: id, collection: @
+  unresolved: (data) ->
+    if not data.id and data._r
+      data.id = data._r
+      delete data._r
+      
+    delete data._c
+    
+    new UnresolvedRemoteModel _.extend data, collection: @
 
-    name: -> @get 'name'
+  name: -> @get 'name'
 
 # required for caching
 RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
-    find: (args,limits,callback,callbackDone) ->
-        uuid = JSON.stringify { name: @name(), args: args, limits: limits }
-        @_super( 'find', args, limits,
-            (err,data) => callback err, data, uuid
-            () => helpers.cbc callbackDone, undefined, undefined, uuid
-        )
+  find: (args,limits,callback,callbackDone) ->
+    uuid = JSON.stringify { name: @name(), args: args, limits: limits }
+    @_super( 'find', args, limits,
+      (err,data) => callback err, data, uuid
+      () => helpers.cbc callbackDone, undefined, undefined, uuid
+    )
 
-    findOne: (args,callback) ->
-        cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
-        @_super 'findOne', args, cb
+  findOne: (args,callback) ->
+    cb = (err,data) => callback err, data, JSON.stringify { name: @name(), args: args }
+    @_super 'findOne', args, cb
 
 
 CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
-    timeout: helpers.Minute
+  timeout: helpers.Minute
 
-    initialize: ->
-        @cache = {}
-        @timeouts = {}
+  initialize: ->
+    @cache = {}
+    @timeouts = {}
 
-    addToCache: (uuid,result,timeout) ->
-        if not timeout then timeout = @timeout
-        @cache[uuid] = result
+  addToCache: (uuid,result,timeout) ->
+    if not timeout then timeout = @timeout
+    @cache[uuid] = result
 
-        name = new Date().getTime()
+    name = new Date().getTime()
 
-        @timeouts[name] = helpers.wait timeout, =>
-            if @timeouts[name] then delete @timeouts[name]
-            if @cache[uuid] then delete @cache[uuid]
+    @timeouts[name] = helpers.wait timeout, =>
+      if @timeouts[name] then delete @timeouts[name]
+      if @cache[uuid] then delete @cache[uuid]
 
-        result
+    result
 
-    clearCache: ->
-        _.map @timeouts, (f,name) -> f()
-        @timeouts = {}
-        @cache = {}
+  clearCache: ->
+    _.map @timeouts, (f,name) -> f()
+    @timeouts = {}
+    @cache = {}
 
-    findOne: (args, callback) ->
-        uuid = JSON.stringify { name: @name(), args: args }
-        if loadCache = @cache[uuid]
-            callback undefined, loadCache, uuid
-            return uuid
+  findOne: (args, callback) ->
+    uuid = JSON.stringify { name: @name(), args: args }
+    if loadCache = @cache[uuid]
+      callback undefined, loadCache, uuid
+      return uuid
 
-        @_super 'findOne', args, (err,data,uuid) =>
-            reqCache = @addToCache uuid, data
-            callback err, data, uuid, reqCache
+    @_super 'findOne', args, (err,data,uuid) =>
+      reqCache = @addToCache uuid, data
+      callback err, data, uuid, reqCache
 
-        return uuid
+    return uuid
 
-    find: (args, limits, callback, callbackDone) ->
-        if limits.nocache then return @_super 'find', args, limits, callback
+  find: (args, limits, callback, callbackDone) ->
+    if limits.nocache then return @_super 'find', args, limits, callback
 
-        uuid = JSON.stringify { name: @name(), args: args, limits: limits }
-        if loadCache = @cache[uuid]
-            _.map loadCache, (data) -> callback undefined, data, uuid
-            helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
-            return uuid
+    uuid = JSON.stringify { name: @name(), args: args, limits: limits }
+    if loadCache = @cache[uuid]
+      _.map loadCache, (data) -> callback undefined, data, uuid
+      helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
+      return uuid
 
-        cache = []
-        fail = false
-        @_super('find', args, limits,
+    cache = []
+    fail = false
+    @_super('find', args, limits,
 
-            (err,data,uuid) =>
-                if not fail
-                    if err then fail = true
-                    else cache.push data
+      (err,data,uuid) =>
+        if not fail
+          if err then fail = true
+          else cache.push data
 
-                callback err, data, uuid
+        callback err, data, uuid
 
-            (err, done, uuid) =>
-                reqCache = @addToCache uuid, cache
-                helpers.cbc callbackDone, err, done, uuid, reqCache
+      (err, done, uuid) =>
+        reqCache = @addToCache uuid, cache
+        helpers.cbc callbackDone, err, done, uuid, reqCache
 
-            )
+      )
 
-        return uuid
+    return uuid
 
-    update: (filter,update,callback) ->
-        @clearCache()
-        @_super 'update', filter, update, callback
+  update: (filter,update,callback) ->
+    @clearCache()
+    @_super 'update', filter, update, callback
 
-    remove: (data,callback) ->
-        @clearCache()
-        @_super 'remove', data, callback
+  remove: (data,callback) ->
+    @clearCache()
+    @_super 'remove', data, callback
 
-    create: (data,callback) ->
-        @clearCache()
-        @_super 'create', data, callback
+  create: (data,callback) ->
+    @clearCache()
+    @_super 'create', data, callback
 
 
 LiveRemoteModel = RemoteModel.extend4000
-    references: 0
+  references: 0
 
-    initialize: ->
-        @settings = @collection.settings.model or {}
-        #console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
+  initialize: ->
+    @settings = @collection.settings.model or {}
+    #console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
 
-    gCollectForce: ->
-        @trigger 'gCollectForce'
-        @trigger 'gCollect'
+  gCollectForce: ->
+    @trigger 'gCollectForce'
+    @trigger 'gCollect'
 
-    gCollect: ->
-        #console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
-        if not --@references then @trigger 'gCollect'
+  gCollect: ->
+    #console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
+    if not --@references then @trigger 'gCollect'
 
-    newRef: ->
-        @references++
-        #console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
-        @
+  newRef: ->
+    @references++
+    #console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
+    @
 
-    flush: (args...)->
-        if @settings.autoGcollect then @gCollect()
-        RemoteModel::flush.apply @, args
+  flush: (args...)->
+    if @settings.autoGcollect then @gCollect()
+    RemoteModel::flush.apply @, args
 
-    flushStay: (args...) -> RemoteModel::flush.apply @, args
+  flushStay: (args...) -> RemoteModel::flush.apply @, args
 
-    hold: (callback) ->
-      model = @collection.hold @
-      callback.call model, -> model.gCollect()
+  hold: (callback) ->
+    model = @collection.hold @
+    callback.call model, -> model.gCollect()
 
 LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
-    initialize: -> @liveModels = {}
-    modelClass: LiveRemoteModel
+  initialize: -> @liveModels = {}
+  modelClass: LiveRemoteModel
 
-    hold: (model) ->
-        if liveModel = @liveModels[model.id] then liveModel.newRef()
-        else
-            #console.log ">>>> liveModel: #{@name()} #{model.id} -- HOLD"
+  hold: (model) ->
+    if liveModel = @liveModels[model.id] then liveModel.newRef()
+    else
+      #console.log ">>>> liveModel: #{@name()} #{model.id} -- HOLD"
 
-            liveModel = @liveModels[model.id] = model.newRef()
-            liveModel.once 'gCollect', =>
-                #console.log 'gcollecting', model.id
-                delete @liveModels[model.id]
-            liveModel.trigger 'live'
-            liveModel
-    
-    modelFromData: (entry) ->
-        if liveModel = @liveModels[entry.id] then liveModel.newRef()
-        else ModelMixin::modelFromData.call @, entry
-
+      liveModel = @liveModels[model.id] = model.newRef()
+      liveModel.once 'gCollect', =>
+        delete @liveModels[model.id]
+      liveModel.trigger 'live'
+      liveModel
+  
+  modelFromData: (entry) ->
+    if liveModel = @liveModels[entry.id] then liveModel.newRef()
+    else ModelMixin::modelFromData.call @, entry
 
 exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
 

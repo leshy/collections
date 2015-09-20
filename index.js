@@ -226,7 +226,6 @@
       })(this));
     },
     resolve: function(callback) {
-      console.log("FINDONE", this.get('id'));
       return this.collection.findOne({
         id: this.get('id')
       }, (function(_this) {
@@ -234,7 +233,6 @@
           if (!entry) {
             return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + _this.collection.get('name'));
           } else {
-            console.log("FINDONE GOT", err, entry);
             _this.morph(_this.collection.resolveModel(entry), _.extend(_this.attributes, entry));
             return helpers.cbc(callback, void 0, _this);
           }
@@ -261,10 +259,13 @@
       }
     },
     reference: function() {
-      return {
-        _r: this.get('id'),
-        _c: this.get('collection').name()
-      };
+      var ref;
+      ref = _.extend({}, this.attributes);
+      ref._r = ref.id;
+      delete ref.id;
+      ref._c = this.get('collection').name();
+      delete ref.collection;
+      return ref;
     }
   });
 
@@ -300,11 +301,15 @@
         };
       })(this));
     },
-    unresolved: function(id) {
-      return new UnresolvedRemoteModel({
-        id: id,
+    unresolved: function(data) {
+      if (!data.id && data._r) {
+        data.id = data._r;
+        delete data._r;
+      }
+      delete data._c;
+      return new UnresolvedRemoteModel(_.extend(data, {
         collection: this
-      });
+      }));
     },
     name: function() {
       return this.get('name');

@@ -14,7 +14,6 @@ exports.remotemodel = remotemodel = require '../remotemodel'
 
 exports.MongoCollection = mongo.MongoCollection.extend4000 collections.Core, collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin
 
-
 #, collections.CachingMixin
 #exports.MemoryCollection = memory.MemoryCollection.extend4000 collections.Core, collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin
 
