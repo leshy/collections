@@ -38,7 +38,7 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
     matchRealm = @get('matchRealm') or @matchRealm
 
     if (not matchModel) and (not matchRealm) and (not matchValue) then return callback undefined, value
-    console.log 'applying permission for', attribute, value
+    #console.log 'applying permission for', attribute, value
     async.series {
       matchRealm: (callback) =>
         if not (validator = matchRealm) then callback()

@@ -5,6 +5,7 @@
   "dependencies": {
     "backbone4000": "git://github.com/leshy/backbone4000.git",
     "helpers": "git://github.com/leshy/nodejs-helpers.git",
+    "mongodb": "^1.2.7",
     "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
     "underscore": "^1.8.3",
     "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git"

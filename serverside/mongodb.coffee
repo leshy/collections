@@ -4,23 +4,6 @@ Backbone = require 'backbone4000'
 helpers = require 'helpers'
 _ = require 'underscore'
 
-crypto = require 'crypto'
-algorithm = 'aes-256-ctr'
-
-password = "Qcuuqkr7L8QTsH8S9WB6Di33N4Evu16qOS7gFtE4+MJ1BRO84G"
-
-encrypt = (text) ->
-    cipher = crypto.createCipher(algorithm,password)
-    crypted = cipher.update(text,'utf8','hex')
-    crypted += cipher.final('hex');
-    crypted
-
-decrypt = (text) ->
-    decipher = crypto.createDecipher(algorithm,password)
-    dec = decipher.update(text,'hex','utf8')
-    dec += decipher.final('utf8');
-    dec
-
 MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
     validator: v( db: 'instance' )
 
@@ -48,21 +31,26 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
 
     # replaces a potential string id with BSON.ObjectID
     patternIn: (pattern) ->
-        pattern = _.extend {},pattern
-        if pattern.id? then pattern._id = pattern.id; delete pattern.id
-        if pattern._id?.constructor is String
-            try
-                pattern._id = new BSON.ObjectID(decrypt(pattern._id))
-            catch err
-                console.log 'cannot decrypt ',pattern._id
+      pattern = _.extend {},pattern
+      if pattern.id? then pattern._id = pattern.id; delete pattern.id
+      if pattern._id?.constructor is String
+          try
+              pattern._id = new BSON.ObjectID(pattern._id)
+          catch err
+              console.log 'cannot instantiate BSON ',pattern._id, err
 
-        pattern
+      pattern
+
 
     patternOut: (pattern) ->
-        if not pattern then return pattern
-        pattern = _.extend {},pattern
-        if pattern._id? then pattern.id = encrypt(String(pattern._id)); delete pattern._id
-        pattern
+      if not pattern then return pattern
+
+      pattern = _.extend {},pattern
+      if pattern._id?
+        pattern.id = String(pattern._id)
+        delete pattern._id
+
+      pattern
 
     find: (pattern,limits,callback,callbackDone) ->
         @collection.find @patternIn(pattern), limits, (err,cursor) =>
