@@ -41,7 +41,6 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
 
       pattern
 
-
     patternOut: (pattern) ->
       if not pattern then return pattern
 

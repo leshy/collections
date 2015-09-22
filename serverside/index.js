@@ -71,7 +71,7 @@
     }
   });
 
-  exports.MongoCollection = mongo.MongoCollection.extend4000(collections.Core, collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin, EncryptedMixin, AesMixin);
+  exports.MongoCollection = mongo.MongoCollection.extend4000(collections.Core, collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin);
 
   exports.MemoryCollection = memory.MemoryCollection.extend4000(collections.Core, collections.ModelMixin);
 
