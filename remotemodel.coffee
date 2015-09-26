@@ -334,7 +334,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000
     if data.constructor is Function
       callback = data
       data = @attributes
-
     @exportReferences data, (err,data) =>
       @applyPermissions('read',
         data,

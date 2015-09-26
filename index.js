@@ -269,7 +269,7 @@
       ref = _.extend({}, this.attributes);
       ref._r = ref.id;
       delete ref.id;
-      ref._c = this.get('collection').name();
+      ref._c = this.collection.name();
       delete ref.collection;
       return ref;
     }

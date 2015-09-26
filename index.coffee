@@ -152,7 +152,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
     ref._r = ref.id
     delete ref.id
     
-    ref._c = @get('collection').name()
+    ref._c = @collection.name()
     delete ref.collection
     
     ref
