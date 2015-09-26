@@ -120,7 +120,10 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
   
   initialize: ->
     @when 'id', (id) => @id = id
-    @when 'collection', (collection) => @collection = collection
+    @when 'collection', (collection) =>
+      @collection = collection
+      @unset 'collection'
+
 
   resolve: (callback) ->
     @collection.findOne {id: @get 'id'}, (err,entry) =>
@@ -129,10 +132,12 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
         @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
         helpers.cbc callback, undefined, @
 
+  find: (callback) -> 
+    @collection.findModel { id: @get 'id' }, callback
+    
   morph: (myclass,mydata) ->
     @__proto__ = myclass::
     _.extend @attributes, mydata
-#    @set mydata
     @initialize()
     @trigger 'resolve'
 
@@ -324,4 +329,5 @@ LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
     else ModelMixin::modelFromData.call @, entry
 
 exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin
+
 

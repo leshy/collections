@@ -331,7 +331,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000
     else @eventAsync 'create', changes, continue1
 
   render: (realm, data, callback) ->
-
     if data.constructor is Function
       callback = data
       data = @attributes
@@ -346,6 +345,18 @@ RemoteModel = exports.RemoteModel = sman.extend4000
   del: (callback) -> @trigger 'del', @
 
   unsubscribe: -> true
+
+  getResolve: (attribute, cb) ->
+    model = @get attribute
+    if model?.resolve then model.resolve cb
+    else _.defer -> helpers.cbc cb, undefined, model
+
+  mapResolve: (attribute, cb) ->
+    models = @get attribute
+    _.each models, (model) ->
+      if model?.resolve then model.resolve cb
+      else _.defer -> helpers.cbc cb, undefined, model
+
 
   remove: (callback) ->
     @del()

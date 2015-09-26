@@ -581,6 +581,30 @@
     unsubscribe: function() {
       return true;
     },
+    getResolve: function(attribute, cb) {
+      var model;
+      model = this.get(attribute);
+      if (model != null ? model.resolve : void 0) {
+        return model.resolve(cb);
+      } else {
+        return _.defer(function() {
+          return helpers.cbc(cb, void 0, model);
+        });
+      }
+    },
+    mapResolve: function(attribute, cb) {
+      var models;
+      models = this.get(attribute);
+      return _.each(models, function(model) {
+        if (model != null ? model.resolve : void 0) {
+          return model.resolve(cb);
+        } else {
+          return _.defer(function() {
+            return helpers.cbc(cb, void 0, model);
+          });
+        }
+      });
+    },
     remove: function(callback) {
       var id;
       this.del();

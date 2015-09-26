@@ -221,7 +221,8 @@
       })(this));
       return this.when('collection', (function(_this) {
         return function(collection) {
-          return _this.collection = collection;
+          _this.collection = collection;
+          return _this.unset('collection');
         };
       })(this));
     },
@@ -238,6 +239,11 @@
           }
         };
       })(this));
+    },
+    find: function(callback) {
+      return this.collection.findModel({
+        id: this.get('id')
+      }, callback);
     },
     morph: function(myclass, mydata) {
       this.__proto__ = myclass.prototype;
