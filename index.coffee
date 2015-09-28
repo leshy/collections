@@ -56,8 +56,13 @@ ModelMixin = exports.ModelMixin = sman.extend4000
     @findModels pattern, {},
     ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
     ((err,data) -> queue.done callback)
+    
+  createModel: (data, realm, callback) ->
+    modelClass = @resolveModel(data)
+    newModel = new modelClass data
+    newModel.flush (err,data) -> helpers.cbc callback, err, data
 
-  createModel: (data,realm,callback) ->
+  createModel_: (data, realm, callback) ->
     @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
       if err then return callback err
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
@@ -95,20 +100,25 @@ ModelMixin = exports.ModelMixin = sman.extend4000
       else callback 'model not found'
 
 EventMixin = exports.EventMixin = Backbone.Model.extend4000
-  update: (pattern,update,callback) ->
-    @_super 'update', pattern, update, (err,data) =>
-      if not err then @trigger 'update', { pattern: pattern, update: update }
-      helpers.cbc callback err, data
+#  update: (pattern,update,callback) ->
+#    @_super 'update', pattern, update, (err,data) =>
+#      if not err then @trigger 'update', { pattern: pattern, update: update }
+#      helpers.cbc callback, err, data
 
-  remove: (pattern,callback) ->
-    @_super 'remove', pattern, (err,data) =>
-      if not err then @trigger 'remove', { pattern: pattern }
-      helpers.cbc callback, err, data
+#  remove: (pattern,callback) ->
+#    @_super 'remove', pattern, (err,data) =>
+#      if not err then @trigger 'remove', { pattern: pattern }
+#      helpers.cbc callback, err, data
 
   create: (data,callback) ->
-    @_super 'create', data, (err,data) =>
-      if not err then @trigger 'create', { create: data }
-      helpers.cbc callback, err, data
+    @eventAsync 'create', data, (err,subchanges={}) =>
+      if err then return callback err
+      subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
+      if data.id then return helpers.cbc callback, "can't specify id for new model"
+      
+      @_super 'create', _.extend(subchanges, data), (err,data) =>
+        #if not err then @trigger 'create', { create: data }
+        helpers.cbc callback, err, data
 
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality

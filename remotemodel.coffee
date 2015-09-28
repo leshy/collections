@@ -266,7 +266,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
       if not targetcollection = @collection.getcollection(ref._c) then throw 'unknown collection "' + ref._c + '"'
       else targetcollection.unresolved(ref)
 
-    refcheck = v { _r: "String", _c: "String" }
+    refcheck = v _r: "String", _c: "String"
 
     _matchf = (value,callback) ->
       try

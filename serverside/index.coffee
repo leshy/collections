@@ -55,11 +55,10 @@ exports.AesMixin = AesMixin = Backbone.Model.extend4000
 #exports.MongoCollection = mongo.MongoCollection.extend4000 collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin, collections.CachingMixin, collections.EventMixin
 #exports.MongoCollection = mongo.MongoCollection.extend4000 _.clone(collections.ModelMixin)
 
-
 #, collections.CachingMixin
 #exports.MemoryCollection = memory.MemoryCollection.extend4000 collections.Core, collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin
 
-exports.MongoCollection = mongo.MongoCollection.extend4000 collections.Core, collections.ModelMixin, collections.ReferenceMixin, collections.RequestIdMixin
+exports.MongoCollection = mongo.MongoCollection.extend4000 collections.Core, collections.ModelMixin, collections.EventMixin, collections.ReferenceMixin, collections.RequestIdMixin
 #, AesMixin
 
 exports.MemoryCollection = memory.MemoryCollection.extend4000 collections.Core, collections.ModelMixin

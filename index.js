@@ -98,6 +98,14 @@
       }));
     },
     createModel: function(data, realm, callback) {
+      var modelClass, newModel;
+      modelClass = this.resolveModel(data);
+      newModel = new modelClass(data);
+      return newModel.flush(function(err, data) {
+        return helpers.cbc(callback, err, data);
+      });
+    },
+    createModel_: function(data, realm, callback) {
       return this.eventAsync('create', {
         data: data,
         realm: realm
@@ -168,40 +176,24 @@
   });
 
   EventMixin = exports.EventMixin = Backbone.Model.extend4000({
-    update: function(pattern, update, callback) {
-      return this._super('update', pattern, update, (function(_this) {
-        return function(err, data) {
-          if (!err) {
-            _this.trigger('update', {
-              pattern: pattern,
-              update: update
-            });
-          }
-          return helpers.cbc(callback(err, data));
-        };
-      })(this));
-    },
-    remove: function(pattern, callback) {
-      return this._super('remove', pattern, (function(_this) {
-        return function(err, data) {
-          if (!err) {
-            _this.trigger('remove', {
-              pattern: pattern
-            });
-          }
-          return helpers.cbc(callback, err, data);
-        };
-      })(this));
-    },
     create: function(data, callback) {
-      return this._super('create', data, (function(_this) {
-        return function(err, data) {
-          if (!err) {
-            _this.trigger('create', {
-              create: data
-            });
+      return this.eventAsync('create', data, (function(_this) {
+        return function(err, subchanges) {
+          if (subchanges == null) {
+            subchanges = {};
           }
-          return helpers.cbc(callback, err, data);
+          if (err) {
+            return callback(err);
+          }
+          subchanges = _.reduce(subchanges, (function(all, data) {
+            return _.extend(all, data);
+          }), {});
+          if (data.id) {
+            return helpers.cbc(callback, "can't specify id for new model");
+          }
+          return _this._super('create', _.extend(subchanges, data), function(err, data) {
+            return helpers.cbc(callback, err, data);
+          });
         };
       })(this));
     }
