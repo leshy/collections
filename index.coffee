@@ -100,24 +100,25 @@ ModelMixin = exports.ModelMixin = sman.extend4000
       else callback 'model not found'
 
 EventMixin = exports.EventMixin = Backbone.Model.extend4000
-#  update: (pattern,update,callback) ->
-#    @_super 'update', pattern, update, (err,data) =>
-#      if not err then @trigger 'update', { pattern: pattern, update: update }
-#      helpers.cbc callback, err, data
 
 #  remove: (pattern,callback) ->
 #    @_super 'remove', pattern, (err,data) =>
 #      if not err then @trigger 'remove', { pattern: pattern }
 #      helpers.cbc callback, err, data
 
+#  update: (filter, update, callback) ->
+#    @eventAsync 'update', update, (err,subchanges={}) =>
+#      if err then return h.cbc callback, err        
+#      subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})      
+#      @_super 'update', _.extend(data, subchanges), (err,data) -> helpers.cbc callback, err, data
+
   create: (data,callback) ->
     @eventAsync 'create', data, (err,subchanges={}) =>
-      if err then return callback err
+      if err then return h.cbc callback, err
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
       if data.id then return helpers.cbc callback, "can't specify id for new model"
       
-      @_super 'create', _.extend(subchanges, data), (err,data) =>
-        #if not err then @trigger 'create', { create: data }
+      @_super 'create', _.extend(data, subchanges), (err,data) =>
         helpers.cbc callback, err, data
 
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
@@ -335,7 +336,7 @@ LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
       liveModel
   
   modelFromData: (entry) ->
-    if liveModel = @liveModels[entry.id] then liveModel.newRef()
+    if liveModel = @liveModels[entry.id] then liveModel
     else ModelMixin::modelFromData.call @, entry
 
 exports.classical = Core.extend4000 ModelMixin, ReferenceMixin, RequestIdMixin, CachingMixin

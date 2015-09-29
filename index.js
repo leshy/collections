@@ -183,7 +183,7 @@
             subchanges = {};
           }
           if (err) {
-            return callback(err);
+            return h.cbc(callback, err);
           }
           subchanges = _.reduce(subchanges, (function(all, data) {
             return _.extend(all, data);
@@ -191,7 +191,7 @@
           if (data.id) {
             return helpers.cbc(callback, "can't specify id for new model");
           }
-          return _this._super('create', _.extend(subchanges, data), function(err, data) {
+          return _this._super('create', _.extend(data, subchanges), function(err, data) {
             return helpers.cbc(callback, err, data);
           });
         };
@@ -513,7 +513,7 @@
     modelFromData: function(entry) {
       var liveModel;
       if (liveModel = this.liveModels[entry.id]) {
-        return liveModel.newRef();
+        return liveModel;
       } else {
         return ModelMixin.prototype.modelFromData.call(this, entry);
       }
