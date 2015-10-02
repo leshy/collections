@@ -103,7 +103,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
 #      if err then return callback err
 #      _.extend @attributes, data
 #      _.map @attributes, (value,key) ~> if not data[key] then delete @attributes[key] # is there a nicer way to do this?
-
 #      callback(null, @)
 
   subscribeModel: ->
@@ -200,9 +199,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
     @collection.fcall name, args, { id: @id }, callback
 
   remoteCallReceive: (name,args,realm,callback,callbackMulti) ->
-    #console.log "GET", args
     @applyPermission 'exec', name, args, realm, (err,args,permission) ~>
-      #console.log "APPLYPERM GOT",err,args
       if err then callback(err); return
       @[name].apply @, args.concat(callback,callbackMulti)
 
@@ -222,8 +219,8 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
   # will find a first permission that matches this realm for this attribute and return it
   applyPermission: (type,attribute,value,realm,callback) ->
     model = @
-    if not attributePermissions = @permissions?[type][attribute] then return callback "Access Denied to#{attribute}: No Permission"
-
+    if not attributePermissions = @permissions?[type][attribute] then return callback "Access Denied to #{attribute}: No Permission"
+    
     permissions = _.clone attributePermissions
 
     permission = permissions.pop()
@@ -236,7 +233,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
 
     checkperm _.clone(attributePermissions), (err,value) ->
       if err then return callback("Access Denied to #{attribute}: #{err}")
-      if value is undefined then return callback("Access Denied to #{attribute}: No Value")
+      #if value is undefined then return callback("Access Denied to #{attribute}: No Value")
       callback undefined, value
 
   # looks for references to remote models and replaces them with object ids
@@ -331,6 +328,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
     else @eventAsync 'create', changes, continue1
 
   render: (realm, data, callback) ->
+    
     if data.constructor is Function
       callback = data
       data = @attributes

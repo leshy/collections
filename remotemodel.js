@@ -324,7 +324,7 @@
       var model, attributePermissions, ref$, permissions, permission, checkperm;
       model = this;
       if (!(attributePermissions = (ref$ = this.permissions) != null ? ref$[type][attribute] : void 8)) {
-        return callback("Access Denied to" + attribute + ": No Permission");
+        return callback("Access Denied to " + attribute + ": No Permission");
       }
       permissions = _.clone(attributePermissions);
       permission = permissions.pop();
@@ -342,9 +342,6 @@
       return checkperm(_.clone(attributePermissions), function(err, value){
         if (err) {
           return callback("Access Denied to " + attribute + ": " + err);
-        }
-        if (value === undefined) {
-          return callback("Access Denied to " + attribute + ": No Value");
         }
         return callback(undefined, value);
       });
