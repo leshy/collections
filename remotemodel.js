@@ -12,7 +12,7 @@
   subscriptionman2 = require('subscriptionman2');
   sman = subscriptionman2.Core.extend4000(subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher);
   exports.definePermissions = definePermissions = function(f){
-    var ret, defPerm, write, read, exec;
+    var ret, defPerm;
     ret = {
       read: {},
       write: {},
@@ -25,10 +25,8 @@
         });
       });
     });
-    write = defPerm('write');
-    read = defPerm('read');
-    exec = defPerm('exec');
-    f(read, write, exec);
+    f(defPerm('read'), defPerm('write'), defPerm('exec'));
+    console.log("DEFINEPERM", ret);
     return ret;
   };
   SaveRealm = exports.SaveRealm = new Object();

@@ -9,7 +9,6 @@ subscriptionman2 = require 'subscriptionman2'
 sman = subscriptionman2.Core.extend4000 subscriptionman2.asyncCallbackReturnMixin, subscriptionman2.simplestMatcher
 
 exports.definePermissions = definePermissions = (f) ->
-  
   ret = { read: {}, write: {}, exec: {} }
 
   defPerm = (type, names, permissions) -->
@@ -17,12 +16,9 @@ exports.definePermissions = definePermissions = (f) ->
       h.mIter permissions, (perm) ->
         h.dictpush ret[type], name, perm
         
-  write = defPerm 'write'
-  read  = defPerm 'read'
-  exec  = defPerm 'exec'
+  f defPerm('read'), defPerm('write'), defPerm('exec')
 
-  f(read, write, exec)
-  
+  console.log "DEFINEPERM", ret  
   return ret
 
 SaveRealm = exports.SaveRealm = new Object()
@@ -33,8 +29,8 @@ SaveRealm = exports.SaveRealm = new Object()
 # (optional matchModel validator)
 Permission = exports.Permission = Validator.ValidatedModel.extend4000 do
   initialize: -> if chew = @get 'chew' then @chew = chew
+  
   match: (model, value, attribute, realm, callback) ->
-
     matchModel = v(@get('matchModel') or @matchModel)
     matchValue = v(@get('matchValue') or @matchValue)
     matchRealm = v(@get('matchRealm') or @matchRealm)

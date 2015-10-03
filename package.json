@@ -4,6 +4,7 @@
   "description": "",
   "dependencies": {
     "backbone4000": "git://github.com/leshy/backbone4000.git",
+    "bluebird": "^2.10.2",
     "helpers": "git://github.com/leshy/nodejs-helpers.git",
     "mongodb": "^1.2.7",
     "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",

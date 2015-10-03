@@ -1,5 +1,6 @@
 require! {
   subscriptionman2
+  async
   underscore: _
   helpers: h
   'validator2-extras': Validator
@@ -12,7 +13,6 @@ RemoteModel = exports.RemoteModel
 
 settings = exports.settings = {}
 settings.model = {}
-
 
 
 Core = exports.Core = Backbone.Model.extend4000 do
@@ -68,31 +68,54 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
   initialize: ->
     @permissions = {}
 
-    parsePermissions = (permissions) ->
+    parsePermissions = (permissions) ~> 
       if permissions then def = false else def = true      
+
+      parsePermission = (permission) ->
+        switch x = permission?@@
+          | undefined => def
+          | Boolean   => permission
+          | Object    => h.dictMap(permission, (value, key) -> if key isnt 'chew' then v value else value)
+          | otherwise => throw "I don't know what to do with this " + permission
+
+          
       keys = { +find, +findOne, +call, +create, +remove, +update }
       
       h.dictMap keys, (val, key) ->
         permission = permissions[key]
-        switch x = permission?@@
-          | undefined => def
-          | Boolean   => permission
-          | Object    => h.dictMap permission, (value, key) -> if key isnt 'chew' then v value else value  # instantiate validators      
-    
-    if not (permissions = @get 'permissions') then console.warn "WARNING: no permissions for collection #{ name }"
-    @permissions = parsePermissions permissions
+        if permission?constructor is Array
+          res = _.map permission, parsePermission
+          console.log "RES", key, permissions[key], res
+          return res
+        else return parsePermission permission
 
-  applyPermission: (permission, msg, realm, cb) ->    
+     
+    @permissions = parsePermissions _.extend {}, (@permissions or {}), (@get('permissions') or {})
+    
+    console.log @name(), @permissions
+
+  applyPermissions: (permissions, msg, realm, cb) -> 
+    if permissions.constructor isnt Array then return @applyPermission(permissions,msg,realm,cb)
+    async.series(
+      _.map(permissions, (permission) ~> (cb) ~>
+        @applyPermission permission, msg, realm, (err,data) ->
+          cb(data,err)),
+      (data,err) ->
+        if not data then cb "Access Denied - Multi"
+        else cb undefined, data
+      )
+        
+  applyPermission: (permission, msg, realm, cb) ->
     switch x = permission?@@
-      | undefined => cb "Access Denied"
+      | undefined => cb "Access Denied - No Perm"
       | Boolean   =>
         if permission then cb void, msg
-        else cb "Access Denied"
+        else cb "Access Denied - Forbidden " + permission
       | Object    =>
 
-        checkRealm = (realm, cb) ->
-          if permission.realm? then permission.realm.feed realm, cb
-          else _.defer cb
+        checkRealm = (realm, cb) -> 
+          if permission.realm? then permission.realm.feed realm, cb 
+          else _.defer -> cb void, msg
 
         checkValue = (msg, cb) -> 
           if permission.value? then permission.value.feed msg, cb
@@ -103,16 +126,17 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
           else _.defer -> cb void, msg
           
         checkRealm realm, (err,data) ->
-          if err then return cb "Realm Access Denied"
+          if err then return cb "Access Denied - Realm"
           checkValue msg, (err,msg) ->
-            if err then return cb "Value Access Denied"
+            if err then return cb "Access Denied - Value"
             checkChew msg, realm, (err,msg) ->
-              if err then return cb "Chew Access Denied"
+              if err then return cb "Access Denied - Chew"
               cb void, msg            
 
   # { data: {} }
   rCreate: (realm, msg, callback) -->
-    @applyPermission @permissions.create, msg, realm, (err,msg) ~> 
+    @applyPermissions @permissions.create, msg, realm, (err,msg) ~> 
+      if err then return callback(err)
       modelClass = @resolveModel msg
       newModel = new modelClass!      
       newModel.update msg, realm, (err,data) ->
@@ -127,7 +151,7 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
 
   # { pattern: {} }
   rRemove: (realm, msg, callback) ->
-    return @applyPermission @permissions.remove, msg, realm, (err, pattern) ~>
+    return @applyPermissions @permissions.remove, msg, realm, (err, pattern) ~>
       if err then return callback err
       queue = new h.queue size: 3
       @findModels msg, {},
@@ -136,8 +160,9 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
 
 
   # { pattern: {}, data: {} }
-  rUpdate: (realm, msg, callback) ->    
-    return @applyPermission @permissions.update, msg, realm, (err, msg) ~>
+  rUpdate: (realm, msg, callback) ->
+    return @applyPermissions @permissions.update, msg, realm, (err, msg) ~>
+      if err then return callback(err)
       queue = new h.queue size: 3
       @findModels(msg.pattern, {}, ((err,model) ->
         queue.push model.id, (callback) ->
@@ -151,7 +176,8 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
         
   # { pattern: {} }
   rFindOne: (realm, msg, callback) ->
-    return @applyPermission @permissions.findOne, msg, realm, (err,pattern) ~>
+    return @applyPermissions @permissions.findOne, msg, realm, (err,pattern) ~>
+      if err then return callback(err)
       @findOne pattern, (err,entry) ~>
         if (not entry or err) then callback(err)
         else
@@ -161,7 +187,10 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
 
   # { pattern: {}, limits: {} } 
   rFind: (realm, msg, callback, callbackDone) ->
-    return @applyPermission @permissions.find, msg, realm, (err, msg) ~>
+    #console.log "APPLYPERM", @name!, @permissions
+    return @applyPermissions @permissions.find, msg, realm, (err, msg) ~>
+      console.log "FIND AFTERPERM",err,msg
+      if err then return callback(err)
       @find(msg.pattern, (msg.limits or {}),
         (err,entry) ~>
           if err then return callback(err)
@@ -170,7 +199,8 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
 
   # { pattern: {}, name: {}, args: [] }
   rCall: (realm, msg, callback, callbackMulti) ->
-    return @applyPermission @permissions.call, msg, realm, (err,msg) ~>
+    return @applyPermissions @permissions.call, msg, realm, (err,msg) ~>
+      if err then return callback(err)
       @findModel msg.pattern, (err,model) ->
         if model then model.remoteCallReceive msg.name, msg.args, realm, callback, callbackMulti
         else callback 'model not found'  
