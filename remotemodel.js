@@ -26,7 +26,6 @@
       });
     });
     f(defPerm('read'), defPerm('write'), defPerm('exec'));
-    console.log("DEFINEPERM", ret);
     return ret;
   };
   SaveRealm = exports.SaveRealm = new Object();
@@ -277,17 +276,16 @@
     },
     remoteCallReceive: function(name, args, realm, callback, callbackMulti){
       var this$ = this;
-      return this.applyPermission('exec', name, args, realm, function(err, args, permission){
+      return this.applyPermission(this.permissions.exec[name], args, realm, function(err, args, permission){
         if (err) {
-          callback(err);
-          return;
+          return callback(err);
         }
         return this$[name].apply(this$, args.concat(callback, callbackMulti));
       });
     },
     update: function(data, realm, callback){
       var this$ = this;
-      return this.applyPermissions('write', data, realm, function(err, data){
+      return this.applyPermissions(this.permissions.write, data, realm, function(err, data){
         if (err) {
           return h.cbc(callback, err, data);
         }
@@ -295,54 +293,88 @@
         return h.cbc(callback, err, data);
       });
     },
-    applyPermissions: function(type, attrs, realm, callback, strictPerm){
+    applyPermissions: function(permissions, attr, realm, cb){
       var this$ = this;
-      strictPerm == null && (strictPerm = true);
-      if (strictPerm) {
-        return async.series(h.dictMap(attrs, function(value, attribute){
-          return function(callback){
-            return this$.applyPermission(type, attribute, value, realm, callback);
-          };
-        }), callback);
-      } else {
-        return async.series(h.dictMap(attrs, function(value, attribute){
-          return function(callback){
-            return this$.applyPermission(type, attribute, value, realm, function(err, data){
-              return callback(null, data);
-            });
-          };
-        }), function(err, data){
-          return callback(undefined, h.dictMap(data, function(x){
-            return x;
-          }));
-        });
+      if (permissions.constructor !== Array) {
+        return this.applyPermission(permissions, attr, realm, cb);
       }
-    },
-    applyPermission: function(type, attribute, value, realm, callback){
-      var model, attributePermissions, ref$, permissions, permission, checkperm;
-      model = this;
-      if (!(attributePermissions = (ref$ = this.permissions) != null ? ref$[type][attribute] : void 8)) {
-        return callback("Access Denied to " + attribute + ": No Permission");
-      }
-      permissions = _.clone(attributePermissions);
-      permission = permissions.pop();
-      checkperm = function(permissions, callback){
-        return permissions.pop().match(model, value, attribute, realm, function(err, value){
-          if (!err) {
-            return callback(undefined, value);
-          }
-          if (!permissions.length) {
-            return callback(err);
-          }
-          return checkperm(permissions, callback);
-        });
-      };
-      return checkperm(_.clone(attributePermissions), function(err, value){
-        if (err) {
-          return callback("Access Denied to " + attribute + ": " + err);
+      return async.series(_.map(permissions, function(permission){
+        return function(cb){
+          return this$.applyPermission(permission, attr, realm, function(err, data){
+            return cb(data, err);
+          });
+        };
+      }), function(data, err){
+        if (!data) {
+          return cb("Access Denied - Multi");
+        } else {
+          return cb(undefined, data);
         }
-        return callback(undefined, value);
       });
+    },
+    applyPermission: function(permission, msg, realm, cb){
+      var x, checkRealm, checkSelf, checkValue, checkChew, this$ = this;
+      switch (x = permission != null ? permission.constructor : void 8) {
+      case undefined:
+        return cb("Access Denied - No Perm");
+      case Boolean:
+        if (permission) {
+          return cb(void 8, msg);
+        } else {
+          return cb("Access Denied - Forbidden " + permission);
+        }
+        break;
+      case Object:
+        checkRealm = function(realm, cb){
+          if (permission.realm != null) {
+            return permission.realm.feed(realm, cb);
+          } else {
+            return cb(void 8, msg);
+          }
+        };
+        checkSelf = function(cb){
+          if (permission.self != null) {
+            return permission.self.feed(this$, cb);
+          } else {
+            return cb();
+          }
+        };
+        checkValue = function(msg, cb){
+          if (permission.value != null) {
+            return permission.value.feed(msg, cb);
+          } else {
+            return cb(void 8, msg);
+          }
+        };
+        checkChew = function(msg, realm, cb){
+          if (permission.chew != null) {
+            return permission.chew(msg, realm, cb);
+          } else {
+            return cb(void 8, msg);
+          }
+        };
+        return checkRealm(realm, function(err, data){
+          if (err) {
+            return cb("Access Denied - Realm");
+          }
+          return checkSelf(function(err, data){
+            if (err) {
+              return cb("Access Denied - Self");
+            }
+            return checkValue(msg, function(err, msg){
+              if (err) {
+                return cb("Access Denied - Value");
+              }
+              return checkChew.call(this$, msg, realm, function(err, msg){
+                if (err) {
+                  return cb("Access Denied - Chew");
+                }
+                return cb(void 8, msg);
+              });
+            });
+          });
+        });
+      }
     },
     exportReferences: function(data, callback){
       var _matchf;
@@ -419,15 +451,6 @@
       });
       changesBak = {};
       this.changes = {};
-      if (this.settings.storePermissions) {
-        this.applyPermissions('write', changes, exports.StoreRealm, function(err, data){
-          if (!err) {
-            return this$.set(data);
-          } else {
-            return h.cbc(callback, err);
-          }
-        });
-      }
       continue1 = function(err, subchanges){
         if (err != null) {
           return callback(err);
@@ -492,9 +515,9 @@
         data = this.attributes;
       }
       return this.exportReferences(data, function(err, data){
-        return this$.applyPermissions('read', data, realm, function(err, data){
+        return this$.applyPermissions(this$.permissions.read, data, realm, function(err, data){
           return callback(err, data);
-        }, false);
+        });
       });
     },
     del: function(callback){

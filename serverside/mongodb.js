@@ -89,7 +89,7 @@
       return this.collection.find(this.patternIn(pattern), limits, (function(_this) {
         return function(err, cursor) {
           return cursor.each(function(err, entry) {
-            if (!entry) {
+            if (!entry && !err) {
               return callbackDone();
             }
             return callback(err, _this.patternOut(entry));

@@ -66,7 +66,6 @@ ModelMixin = exports.ModelMixin = Backbone.Model.extend4000 do
 
 RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 do
   initialize: ->
-    @permissions = {}
 
     parsePermissions = (permissions) ~> 
       if permissions then def = false else def = true      
@@ -77,7 +76,6 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
           | Boolean   => permission
           | Object    => h.dictMap(permission, (value, key) -> if key isnt 'chew' then v value else value)
           | otherwise => throw "I don't know what to do with this " + permission
-
           
       keys = { +find, +findOne, +call, +create, +remove, +update }
       
@@ -85,15 +83,11 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
         permission = permissions[key]
         if permission?constructor is Array
           res = _.map permission, parsePermission
-          console.log "RES", key, permissions[key], res
           return res
         else return parsePermission permission
 
-     
     @permissions = parsePermissions _.extend {}, (@permissions or {}), (@get('permissions') or {})
     
-    console.log @name(), @permissions
-
   applyPermissions: (permissions, msg, realm, cb) -> 
     if permissions.constructor isnt Array then return @applyPermission(permissions,msg,realm,cb)
     async.series(
@@ -187,15 +181,13 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
 
   # { pattern: {}, limits: {} } 
   rFind: (realm, msg, callback, callbackDone) ->
-    #console.log "APPLYPERM", @name!, @permissions
     return @applyPermissions @permissions.find, msg, realm, (err, msg) ~>
-      console.log "FIND AFTERPERM",err,msg
       if err then return callback(err)
       @find(msg.pattern, (msg.limits or {}),
-        (err,entry) ~>
+        ((err,entry) ~>
           if err then return callback(err)
-          @modelFromData(entry).render realm, callback
-        callbackDone)
+          @modelFromData(entry).render realm, callback),
+        ~> callbackDone())
 
   # { pattern: {}, name: {}, args: [] }
   rCall: (realm, msg, callback, callbackMulti) ->

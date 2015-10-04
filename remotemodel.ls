@@ -18,7 +18,6 @@ exports.definePermissions = definePermissions = (f) ->
         
   f defPerm('read'), defPerm('write'), defPerm('exec')
 
-  console.log "DEFINEPERM", ret  
   return ret
 
 SaveRealm = exports.SaveRealm = new Object()
@@ -195,42 +194,62 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
     @collection.fcall name, args, { id: @id }, callback
 
   remoteCallReceive: (name,args,realm,callback,callbackMulti) ->
-    @applyPermission 'exec', name, args, realm, (err,args,permission) ~>
-      if err then callback(err); return
-      @[name].apply @, args.concat(callback,callbackMulti)
+    @applyPermission @permissions.exec[name], args, realm, (err, args, permission) ~>
+      if err then return callback err
+      @[name].apply @, args.concat callback, callbackMulti
 
   update: (data, realm, callback) ->
-    @applyPermissions 'write', data, realm, (err,data) ~>
+    @applyPermissions @permissions.write, data, realm, (err,data) ~>
       if err then return h.cbc callback, err, data
       @set(data)
       h.cbc callback, err, data
 
-  applyPermissions: (type, attrs, realm, callback, strictPerm=true) ->
-    if strictPerm
-      async.series h.dictMap(attrs, (value, attribute) ~> (callback) ~> @applyPermission(type,attribute, value, realm, callback)), callback
-    else
-      async.series h.dictMap(attrs, (value, attribute) ~> (callback) ~> @applyPermission(type, attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
-        callback undefined, h.dictMap data, (x) -> x
 
-  # will find a first permission that matches this realm for this attribute and return it
-  applyPermission: (type,attribute,value,realm,callback) ->
-    model = @
-    if not attributePermissions = @permissions?[type][attribute] then return callback "Access Denied to #{attribute}: No Permission"
-    
-    permissions = _.clone attributePermissions
+  applyPermissions: (permissions, attr, realm, cb) ->
+    if permissions.constructor isnt Array then return @applyPermission permissions, attr, realm, cb
+      
+    async.series(
+      _.map(permissions, (permission) ~> (cb) ~>
+        @applyPermission permission, attr, realm, (err,data) -> cb(data,err)),
+      (data,err) ->
+        if not data then cb "Access Denied - Multi"
+        else cb undefined, data
+      )
 
-    permission = permissions.pop()
+  applyPermission: (permission, msg, realm, cb) ->
+    switch x = permission?@@
+      | undefined => cb "Access Denied - No Perm"
+      | Boolean   =>
+        if permission then cb void, msg
+        else cb "Access Denied - Forbidden " + permission
+      | Object    =>
 
-    checkperm = (permissions, callback) ->
-      permissions.pop().match model, value, attribute, realm, (err,value) ->
-        if not err then return callback undefined, value
-        if not permissions.length then return callback err
-        return checkperm permissions, callback
+        checkRealm = (realm, cb) -> 
+          if permission.realm? then permission.realm.feed realm, cb 
+          else cb void, msg
 
-    checkperm _.clone(attributePermissions), (err,value) ->
-      if err then return callback("Access Denied to #{attribute}: #{err}")
-      #if value is undefined then return callback("Access Denied to #{attribute}: No Value")
-      callback undefined, value
+        checkSelf = (cb) ~>  
+          if permission.self? then permission.self.feed @, cb 
+          else cb!
+
+        checkValue = (msg, cb) -> 
+          if permission.value? then permission.value.feed msg, cb
+          else cb void, msg
+
+        checkChew = (msg,realm, cb) -> 
+          if permission.chew? then permission.chew msg, realm, cb
+          else cb void, msg
+
+        checkRealm realm, (err,data) ~> 
+          if err then return cb "Access Denied - Realm"
+          checkSelf (err,data) ~> 
+            if err then return cb "Access Denied - Self"
+            checkValue msg, (err,msg) ~> 
+              if err then return cb "Access Denied - Value"
+              checkChew.call @, msg, realm, (err,msg) -> 
+                if err then return cb "Access Denied - Chew"
+                cb void, msg            
+
 
   # looks for references to remote models and replaces them with object ids
   # what do we do if a reference object is not flushed? propagade flush call for now
@@ -285,10 +304,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
     changesBak = {}
     @changes = {}
 
-    if @settings.storePermissions
-      @applyPermissions 'write', changes, exports.StoreRealm, (err,data) ~>
-        if not err then @set(data) else return h.cbc callback, err
-
     continue1 = (err,subchanges) ~>
       if err? then return callback err
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
@@ -323,18 +338,13 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
     if @get 'id' then @eventAsync 'update', changes, continue1
     else @eventAsync 'create', changes, continue1
 
-  render: (realm, data, callback) ->
-    
+  render: (realm, data, callback) ->    
     if data.constructor is Function
       callback = data
       data = @attributes
-
     @exportReferences data, (err,data) ~>
-      @applyPermissions('read',
-        data,
-        realm,
-        ((err,data) -> callback err,data),
-        false)
+      @applyPermissions @permissions.read, data, realm, (err,data) ->
+        callback err,data
 
   del: (callback) -> @trigger 'del', @
 

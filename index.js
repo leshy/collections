@@ -82,7 +82,6 @@
   RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000({
     initialize: function(){
       var parsePermissions, this$ = this;
-      this.permissions = {};
       parsePermissions = function(permissions){
         var def, parsePermission, keys;
         if (permissions) {
@@ -122,15 +121,13 @@
           permission = permissions[key];
           if ((permission != null ? permission.constructor : void 8) === Array) {
             res = _.map(permission, parsePermission);
-            console.log("RES", key, permissions[key], res);
             return res;
           } else {
             return parsePermission(permission);
           }
         });
       };
-      this.permissions = parsePermissions(_.extend({}, this.permissions || {}, this.get('permissions') || {}));
-      return console.log(this.name(), this.permissions);
+      return this.permissions = parsePermissions(_.extend({}, this.permissions || {}, this.get('permissions') || {}));
     },
     applyPermissions: function(permissions, msg, realm, cb){
       var this$ = this;
@@ -320,7 +317,6 @@
     rFind: function(realm, msg, callback, callbackDone){
       var this$ = this;
       return this.applyPermissions(this.permissions.find, msg, realm, function(err, msg){
-        console.log("FIND AFTERPERM", err, msg);
         if (err) {
           return callback(err);
         }
@@ -329,7 +325,9 @@
             return callback(err);
           }
           return this$.modelFromData(entry).render(realm, callback);
-        }, callbackDone);
+        }, function(){
+          return callbackDone();
+        });
       });
     },
     rCall: function(realm, msg, callback, callbackMulti){
