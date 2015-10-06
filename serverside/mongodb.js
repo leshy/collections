@@ -37,17 +37,6 @@
         });
       }
     },
-    create_: function(entry, callback) {
-      entry = _.extend({}, entry);
-      return this.collection.insert(entry, function(err, data) {
-        if ((data != null ? data[0]._id : void 0)) {
-          data = {
-            id: String(data[0]._id)
-          };
-        }
-        return helpers.cbc(callback, err, data);
-      });
-    },
     create: function(entry, callback) {
       entry = _.extend({}, entry);
       return this.collection.insert(entry, (function(_this) {

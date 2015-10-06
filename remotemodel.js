@@ -285,32 +285,41 @@
     },
     update: function(data, realm, callback){
       var this$ = this;
-      return this.applyPermissions(this.permissions.write, data, realm, function(err, data){
+      console.log("UPDATE CALLED WITH", data);
+      return this.applyPermissions(this.permissions.write, data, realm, true, function(err, data){
         if (err) {
           return h.cbc(callback, err, data);
         }
-        this$.set(data);
-        return h.cbc(callback, err, data);
+        return this$.importReferences(data, function(err, data){
+          this$.set(data);
+          return h.cbc(callback, err, data);
+        });
       });
     },
-    applyPermissions: function(permissions, attr, realm, cb){
-      var this$ = this;
-      if (permissions.constructor !== Array) {
-        return this.applyPermission(permissions, attr, realm, cb);
-      }
-      return async.series(_.map(permissions, function(permission){
-        return function(cb){
-          return this$.applyPermission(permission, attr, realm, function(err, data){
-            return cb(data, err);
+    applyPermissions: function(permissions, attrs, realm, strict, cb){
+      var afterPerm;
+      afterPerm = {};
+      return async.series(_.map(attrs, function(attr, val){
+        return function(callback){
+          console.log("APPLY PERM FOR ", attr, permission[attr], "TO", val);
+          return this.applyPermission(permission[attr], val, realm, function(err, data){
+            console.log("RES", err, data);
+            if (err) {
+              if (strict) {
+                return callback(("Access Denied to " + attr + ": ") + err);
+              } else {
+                return afterPerm[attr] = data;
+              }
+            }
           });
         };
-      }), function(data, err){
-        if (!data) {
-          return cb("Access Denied - Multi");
+      }, function(err, data){
+        if (err) {
+          return callback(err);
         } else {
-          return cb(undefined, data);
+          return callback(undefined, afterPerm);
         }
-      });
+      }));
     },
     applyPermission: function(permission, msg, realm, cb){
       var x, checkRealm, checkSelf, checkValue, checkChew, this$ = this;
@@ -348,6 +357,7 @@
         };
         checkChew = function(msg, realm, cb){
           if (permission.chew != null) {
+            console.log("GOT CHEW!", msg);
             return permission.chew(msg, realm, cb);
           } else {
             return cb(void 8, msg);
@@ -441,9 +451,6 @@
       return this.asyncDepthfirst(_matchf, callback, true, true, data);
     },
     flush: function(callback){
-      return this.flushnow(callback);
-    },
-    flushnow: function(callback){
       var changes, changesBak, continue1, this$ = this;
       changes = {};
       _.map(this.changes, function(value, property){
@@ -473,13 +480,7 @@
               _.extend(this$.attributes, _.extend(subchanges, data));
               this$.trigger('change:id', this$, data.id);
               h.cbc(callback, err, _.extend(subchanges, data));
-              this$.render({}, function(err, data){
-                if (!err) {
-                  return this$.collection.trigger('create', data);
-                }
-              });
-              this$.collection.trigger('createModel', this$);
-              return this$.eventAsync('post_create', this$);
+              return this$.collection.eventAsync('postCreate', this$);
             });
           } else {
             return this$.collection.update({
@@ -488,7 +489,6 @@
               if (err) {
                 this$.changes = changesBak;
               } else {
-                this$.event('post_update', changes);
                 this$.render({}, changes, function(err, data){
                   if (!err) {
                     return this$.collection.trigger('update', _.extend({
@@ -515,7 +515,8 @@
         data = this.attributes;
       }
       return this.exportReferences(data, function(err, data){
-        return this$.applyPermissions(this$.permissions.read, data, realm, function(err, data){
+        var ref$;
+        return this$.applyPermissions(((ref$ = this$.permissions) != null ? ref$.read : void 8) || true, data, realm, false, function(err, data){
           return callback(err, data);
         });
       });

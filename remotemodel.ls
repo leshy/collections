@@ -128,12 +128,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
   # clone - do I change the original object or do I create one of my own?
   # all - do I call your changef for each object/array or only for attributes?
   asyncDepthfirst: (changef, callback, clone=false, all=false, target=@attributes,depth=0) ->
-#    if target is @attributes then console.log 'DF',JSON.stringify(@attributes)
-    #spaces = ""
-    #_.times depth, -> spaces+= " "
-    # call changef on the target, return results
     _check = (target,callback) -> h.forceCallback changef, target, callback
-    # recursively search through an iterable target
     _digtarget = (target,callback) ~>
       bucket = new h.parallelBucket()
 
@@ -199,23 +194,28 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
       @[name].apply @, args.concat callback, callbackMulti
 
   update: (data, realm, callback) ->
-    @applyPermissions @permissions.write, data, realm, (err,data) ~>
+    console.log "UPDATE CALLED WITH",data
+    @applyPermissions @permissions.write, data, realm, true, (err,data) ~>
       if err then return h.cbc callback, err, data
-      @set(data)
-      h.cbc callback, err, data
+      @importReferences data, (err,data) ~> 
+        @set(data)
+        h.cbc callback, err, data
 
+  applyPermissions: (permissions, attrs, realm, strict, cb) ->
+#    if permissions.constructor isnt Array then return @applyPermission permissions, attrs, realm, cb
 
-  applyPermissions: (permissions, attr, realm, cb) ->
-    if permissions.constructor isnt Array then return @applyPermission permissions, attr, realm, cb
-      
-    async.series(
-      _.map(permissions, (permission) ~> (cb) ~>
-        @applyPermission permission, attr, realm, (err,data) -> cb(data,err)),
-      (data,err) ->
-        if not data then cb "Access Denied - Multi"
-        else cb undefined, data
-      )
-
+    afterPerm = {}
+    async.series _.map attrs, ((attr,val) ->
+      (callback) ->
+        console.log "APPLY PERM FOR ", attr, permission[attr], "TO", val
+        @applyPermission permission[attr], val, realm, (err,data) ->
+          console.log "RES",err,data
+          if err then if strict then return callback "Access Denied to #{attr}: " + err
+          else afterPerm[attr] = data), (err,data) ->
+            if err then return callback err
+            else return callback undefined, afterPerm
+        
+          
   applyPermission: (permission, msg, realm, cb) ->
     switch x = permission?@@
       | undefined => cb "Access Denied - No Perm"
@@ -237,7 +237,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
           else cb void, msg
 
         checkChew = (msg,realm, cb) -> 
-          if permission.chew? then permission.chew msg, realm, cb
+          if permission.chew? then console.log "GOT CHEW!",msg; permission.chew msg, realm, cb
           else cb void, msg
 
         checkRealm realm, (err,data) ~> 
@@ -296,9 +296,8 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
   # with model syncing
   # throttle decorator makes sure that we can apply bunch of changes in a series to an object, but the system requests a sync only once.
   # flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
-  flush: (callback) -> @flushnow(callback)
 
-  flushnow: (callback) ->
+  flush: (callback) ->
     changes = {}
     _.map @changes, (value,property) ~> changes[property] = @attributes[property]
     changesBak = {}
@@ -309,7 +308,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
 
       _.extend changes, subchanges
-
       @exportReferences changes, (err, changes) ~>
         if h.isEmpty(changes) then return h.cbc callback
         if not id = @get 'id' then @collection.create changes, (err,data) ~>
@@ -321,15 +319,13 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
 
           h.cbc callback, err, _.extend(subchanges, data)
 
-          @render {}, (err,data) ~> if not err then @collection.trigger 'create', data
-          @collection.trigger 'createModel', @
-          @eventAsync 'post_create', @
+          @collection.eventAsync 'postCreate', @
+#          @eventAsync 'post_create', @
         else
           #console.log 'calling update',changes
           @collection.update { id: id }, changes, (err,data) ~>
             if err then @changes = changesBak
             else
-              @event 'post_update', changes
               @render {}, changes, (err,data) ~>
                 if not err then @collection.trigger 'update', _.extend({id: id}, data)
 
@@ -338,12 +334,12 @@ RemoteModel = exports.RemoteModel = sman.extend4000 do
     if @get 'id' then @eventAsync 'update', changes, continue1
     else @eventAsync 'create', changes, continue1
 
-  render: (realm, data, callback) ->    
+  render: (realm, data, callback) ->
     if data.constructor is Function
       callback = data
       data = @attributes
     @exportReferences data, (err,data) ~>
-      @applyPermissions @permissions.read, data, realm, (err,data) ->
+      @applyPermissions (@permissions?.read or true), data, realm, false, (err,data) ->
         callback err,data
 
   del: (callback) -> @trigger 'del', @

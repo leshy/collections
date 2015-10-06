@@ -218,12 +218,25 @@
         newModel.update(msg, realm, function(err, data){
           if (err) {
             return callback(err);
-          } else {
-            return model.flush(function(err){
+          }
+          return this$.eventAsync('remoteCreate', {
+            data: data,
+            model: newModel,
+            realm: realm
+          }, function(err, subChanges){
+            subChanges == null && (subChanges = {});
+            if (err) {
+              return h.cbc(callback, err);
+            }
+            subChanges = _.reduce(subChanges, function(all, data){
+              return _.extend(all, data);
+            }, {});
+            newModel.set(subChanges);
+            return newModel.flush(function(err, data){
               if (err) {
                 return callback(err);
               } else {
-                return model.render(realm, function(err, data){
+                return newModel.render(realm, function(err, data){
                   if (err) {
                     return callback(err);
                   } else {
@@ -232,7 +245,7 @@
                 });
               }
             });
-          }
+          });
         });
         return newModel.flush(function(err, data){
           return h.cbc(callback, err, data);
@@ -317,15 +330,18 @@
     rFind: function(realm, msg, callback, callbackDone){
       var this$ = this;
       return this.applyPermissions(this.permissions.find, msg, realm, function(err, msg){
+        console.log(this$.name(), "FIND", err, msg.pattern);
         if (err) {
           return callback(err);
         }
         return this$.find(msg.pattern, msg.limits || {}, function(err, entry){
+          console.log(this$.name(), "GOT", err, entry);
           if (err) {
             return callback(err);
           }
           return this$.modelFromData(entry).render(realm, callback);
         }, function(){
+          console.log(this$.name(), "DONE");
           return callbackDone();
         });
       });
@@ -350,7 +366,7 @@
   EventMixin = exports.EventMixin = subscriptionMan.extend4000({
     create: function(data, callback){
       var this$ = this;
-      return this.eventAsync('create', data, function(err, subchanges){
+      return this.eventAsync('preCreate', data, function(err, subchanges){
         subchanges == null && (subchanges = {});
         if (err) {
           return h.cbc(callback, err);

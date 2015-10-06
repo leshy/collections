@@ -96,8 +96,7 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
           cb(data,err)),
       (data,err) ->
         if not data then cb "Access Denied - Multi"
-        else cb undefined, data
-      )
+        else cb undefined, data)
         
   applyPermission: (permission, msg, realm, cb) ->
     switch x = permission?@@
@@ -132,14 +131,18 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
     @applyPermissions @permissions.create, msg, realm, (err,msg) ~> 
       if err then return callback(err)
       modelClass = @resolveModel msg
-      newModel = new modelClass!      
-      newModel.update msg, realm, (err,data) ->
-        if err then return callback err
-        else model.flush (err) ->
-          if err then return callback err
-          else model.render realm, (err,data) ->
+      newModel = new modelClass!
+      newModel.update msg, realm, (err,data) ~>
+        if err then return callback err          
+        @eventAsync 'remoteCreate', { data: data, model: newModel, realm: realm }, (err,subChanges={}) ~>
+          if err then return h.cbc callback, err
+          subChanges = _.reduce(subChanges, ((all,data) -> _.extend all, data), {})
+          newModel.set subChanges
+          newModel.flush (err, data) ->
             if err then return callback err
-            else callback void, data
+            else newModel.render realm, (err,data) ->
+              if err then return callback err
+              else callback void, data
             
       newModel.flush (err,data) -> h.cbc callback, err, data
 
@@ -182,12 +185,16 @@ RemoteInterfaceMixin = exports.RemoteInterfaceMixin = Backbone.Model.extend4000 
   # { pattern: {}, limits: {} } 
   rFind: (realm, msg, callback, callbackDone) ->
     return @applyPermissions @permissions.find, msg, realm, (err, msg) ~>
+      console.log @name!, "FIND", err, msg.pattern
       if err then return callback(err)
       @find(msg.pattern, (msg.limits or {}),
         ((err,entry) ~>
+          console.log @name!,"GOT",err,entry
           if err then return callback(err)
           @modelFromData(entry).render realm, callback),
-        ~> callbackDone())
+        ~>
+          console.log @name!,"DONE"
+          callbackDone())
 
   # { pattern: {}, name: {}, args: [] }
   rCall: (realm, msg, callback, callbackMulti) ->
@@ -211,12 +218,12 @@ EventMixin = exports.EventMixin = subscriptionMan.extend4000 do
 #      subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})      
 #      @_super 'update', _.extend(data, subchanges), (err,data) -> h.cbc callback, err, data
 
-  create: (data,callback) ->
-    @eventAsync 'create', data, (err,subchanges={}) ~>
+  create: (data, callback) ->
+    @eventAsync 'preCreate', data, (err,subchanges={}) ~>
       if err then return h.cbc callback, err
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
       if data.id then return h.cbc callback, "can't specify id for new model"
-      
+
       @_super 'create', _.extend(data, subchanges), (err,data) ~>
         h.cbc callback, err, data
 
@@ -245,7 +252,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
   find: (callback) -> 
     @collection.findModel { id: @get 'id' }, callback
     
-  morph: (myclass,mydata) ->
+  morph: (myclass, mydata) ->
     @__proto__ = myclass::
     _.extend @attributes, mydata
     @initialize()
@@ -380,11 +387,11 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000 do
     @clearCache()
     @_super 'update', filter, update, callback
 
-  remove: (data,callback) ->
+  remove: (data, callback) ->
     @clearCache()
     @_super 'remove', data, callback
 
-  create: (data,callback) ->
+  create: (data, callback) ->
     @clearCache()
     @_super 'create', data, callback
 

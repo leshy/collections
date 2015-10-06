@@ -12,13 +12,6 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
         if @collection.constructor is String then @get('db').collection @collection, (err,collection) => @set { collection: @collection = collection }
         if not @get 'name' then @set { name: @collection.collectionName };
 
-    create_: (entry,callback) ->
-        entry = _.extend({}, entry) # mongodb api will automatically append _.id to this dict, I want to avoid this..
-        @collection.insert(entry,(err,data) ->
-            if (data?[0]._id)
-                data = { id: String(data[0]._id) };
-            helpers.cbc callback, err, data)
-
 
     create: (entry,callback) ->
         # mongodb api will automatically append _.id to this dict, I want to avoid this..
