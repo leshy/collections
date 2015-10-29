@@ -87,7 +87,8 @@ RemoteModel = exports.RemoteModel = sman.extend4000
     @on 'change', (model,data) =>
       @localChangePropagade(model,data)
       @trigger 'anychange'
-      #@trigger 'anychange:... ' blah, later
+      _.each data, (value, key) =>
+        @trigger 'anychange:' + key, @, value
 
     # convert all references to actual unresolvedRemoteModels (see index.coffee)
     @importReferences @attributes, (err,data) => @attributes = data
@@ -304,18 +305,22 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
       @exportReferences changes, (err, changes) =>
         if helpers.isEmpty(changes) then return helpers.cbc callback
+
         if not id = @get 'id' then @collection.create changes, (err,data) =>
           if err
             @changes = changesBak
             return helpers.cbc callback, err
-          _.extend @attributes, _.extend(subchanges,data)
+
+          _.extend @attributes, data
+
           @trigger 'change:id', @, data.id # when 'id' should trigger
 
-          helpers.cbc callback, err, _.extend(subchanges, data)
+          helpers.cbc callback, err, @attributes
 
           @render {}, (err,data) => if not err then @collection.trigger 'create', data
           @collection.trigger 'createModel', @
           @eventAsync 'post_create', @
+
         else
           #console.log 'calling update',changes
           @collection.update { id: id }, changes, (err,data) =>

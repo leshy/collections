@@ -144,7 +144,10 @@
       this.on('change', (function(_this) {
         return function(model, data) {
           _this.localChangePropagade(model, data);
-          return _this.trigger('anychange');
+          _this.trigger('anychange');
+          return _.each(data, function(value, key) {
+            return _this.trigger('anychange:' + key, _this, value);
+          });
         };
       })(this));
       this.importReferences(this.attributes, (function(_this) {
@@ -523,9 +526,9 @@
                   _this.changes = changesBak;
                   return helpers.cbc(callback, err);
                 }
-                _.extend(_this.attributes, _.extend(subchanges, data));
+                _.extend(_this.attributes, data);
                 _this.trigger('change:id', _this, data.id);
-                helpers.cbc(callback, err, _.extend(subchanges, data));
+                helpers.cbc(callback, err, _this.attributes);
                 _this.render({}, function(err, data) {
                   if (!err) {
                     return _this.collection.trigger('create', data);

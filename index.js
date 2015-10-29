@@ -102,7 +102,7 @@
       modelClass = this.resolveModel(data);
       newModel = new modelClass(data);
       return newModel.flush(function(err, data) {
-        return helpers.cbc(callback, err, data);
+        return helpers.cbc(callback, err, newModel);
       });
     },
     createModel_: function(data, realm, callback) {

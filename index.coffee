@@ -58,9 +58,9 @@ ModelMixin = exports.ModelMixin = sman.extend4000
     ((err,data) -> queue.done callback)
     
   createModel: (data, realm, callback) ->
-    modelClass = @resolveModel(data)
+    modelClass = @resolveModel data
     newModel = new modelClass data
-    newModel.flush (err,data) -> helpers.cbc callback, err, data
+    newModel.flush (err,data) -> helpers.cbc callback, err, newModel
 
   createModel_: (data, realm, callback) ->
     @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
@@ -113,7 +113,7 @@ EventMixin = exports.EventMixin = Backbone.Model.extend4000
 #      @_super 'update', _.extend(data, subchanges), (err,data) -> helpers.cbc callback, err, data
 
   create: (data,callback) ->
-    @eventAsync 'create', data, (err,subchanges={}) =>
+    @eventAsync 'create', data, (err, subchanges={}) =>
       if err then return h.cbc callback, err
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
       if data.id then return helpers.cbc callback, "can't specify id for new model"
