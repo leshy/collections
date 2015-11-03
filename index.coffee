@@ -141,6 +141,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
       if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
       else
         @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
+        @trigger 'resolve'
         helpers.cbc callback, undefined, @
 
   find: (callback) -> 
@@ -150,13 +151,12 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
     @__proto__ = myclass::
     _.extend @attributes, mydata
     @initialize()
-    @trigger 'resolve'
 
   del: (callback) -> @trigger 'del', @
 
   remove: (callback) ->
     @del()
-    if @id then @collection.remove {id: id}, helpers.cb callback else helpers.cbc callback
+    if @id then @collection.remove { id: id }, helpers.cb callback else helpers.cbc callback
 
   reference: ->
     ref = _.extend {}, @attributes # clone
@@ -274,7 +274,6 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
         helpers.cbc callbackDone, err, done, uuid, reqCache
 
       )
-
     return uuid
 
   update: (filter,update,callback) ->

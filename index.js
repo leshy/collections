@@ -227,6 +227,7 @@
             return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + _this.collection.get('name'));
           } else {
             _this.morph(_this.collection.resolveModel(entry), _.extend(_this.attributes, entry));
+            _this.trigger('resolve');
             return helpers.cbc(callback, void 0, _this);
           }
         };
@@ -240,8 +241,7 @@
     morph: function(myclass, mydata) {
       this.__proto__ = myclass.prototype;
       _.extend(this.attributes, mydata);
-      this.initialize();
-      return this.trigger('resolve');
+      return this.initialize();
     },
     del: function(callback) {
       return this.trigger('del', this);

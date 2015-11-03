@@ -70,7 +70,6 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
 #
 # it also has localCallPropagade and remoteCallReceive for remote function calling
 RemoteModel = exports.RemoteModel = sman.extend4000
-
   initialize: ->
     @settings = _.extend {}, @settings, @get('settings')
 
