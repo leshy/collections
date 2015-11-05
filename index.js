@@ -59,31 +59,6 @@
     modelFromData: function(entry) {
       return new (this.resolveModel(entry))(entry);
     },
-    updateModel: function(pattern, data, realm, callback) {
-      var queue;
-      queue = new helpers.queue({
-        size: 3
-      });
-      return this.findModels(pattern, {}, (function(err, model) {
-        return queue.push(model.id, function(callback) {
-          return model.update(data, realm, (function(_this) {
-            return function(err, data) {
-              if (err) {
-                return callback(err, data);
-              }
-              return model.flush(function(err, fdata) {
-                if (!_.keys(data).length) {
-                  data = void 0;
-                }
-                return callback(err, data);
-              });
-            };
-          })(this));
-        });
-      }), function() {
-        return queue.done(callback);
-      });
-    },
     removeModel: function(pattern, realm, callback) {
       var queue;
       queue = new helpers.queue({
@@ -96,51 +71,6 @@
       }), (function(err, data) {
         return queue.done(callback);
       }));
-    },
-    createModel: function(data, realm, callback) {
-      var modelClass, newModel;
-      modelClass = this.resolveModel(data);
-      newModel = new modelClass(data);
-      return newModel.flush(function(err, data) {
-        return helpers.cbc(callback, err, newModel);
-      });
-    },
-    createModel_: function(data, realm, callback) {
-      return this.eventAsync('create', {
-        data: data,
-        realm: realm
-      }, (function(_this) {
-        return function(err, subchanges) {
-          var newModel;
-          if (subchanges == null) {
-            subchanges = {};
-          }
-          if (err) {
-            return callback(err);
-          }
-          subchanges = _.reduce(subchanges, (function(all, data) {
-            return _.extend(all, data);
-          }), {});
-          if (data.id) {
-            return helpers.cbc(callback, "can't specify id for new model");
-          }
-          try {
-            newModel = new (_this.resolveModel(data));
-          } catch (_error) {
-            err = _error;
-            return helpers.cbc(callback, err);
-          }
-          return newModel.update(data, realm, function(err, data) {
-            if (err) {
-              return helpers.cbc(callback, err, data);
-            }
-            newModel.set(subchanges);
-            return newModel.flush(function(err, data) {
-              return helpers.cbc(callback, err, _.extend(subchanges, data));
-            });
-          });
-        };
-      })(this));
     },
     findModels: function(pattern, limits, callback, callbackDone) {
       return this.find(pattern, limits, (function(_this) {

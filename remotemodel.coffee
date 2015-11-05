@@ -38,7 +38,7 @@ Permission = exports.Permission = Validator.ValidatedModel.extend4000
     matchRealm = @get('matchRealm') or @matchRealm
 
     if (not matchModel) and (not matchRealm) and (not matchValue) then return callback undefined, value
-    #console.log 'applying permission for', attribute, value
+    console.log 'applying permission for', attribute, value
     async.series {
       matchRealm: (callback) =>
         if not (validator = matchRealm) then callback()
@@ -205,15 +205,16 @@ RemoteModel = exports.RemoteModel = sman.extend4000
       if err then callback(err); return
       @[name].apply @, args.concat(callback,callbackMulti)
 
-  update: (data,realm,callback) ->
+  update: (data, realm, callback) ->
     @applyPermissions 'write', data, realm, (err,data) =>
       if err then return helpers.cbc callback, err, data
-      @set(data)
+      @set data
       helpers.cbc callback, err, data
 
   applyPermissions: (type, attrs, realm, callback, strictPerm=true) ->
     if strictPerm
-      async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type,attribute, value, realm, callback)), callback
+      async.series helpers.dictMap(attrs, (value, attribute) => (cb) =>
+        @applyPermission(type,attribute, value, realm, cb )), callback
     else
       async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type, attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
         callback undefined, helpers.dictMap data, (x) -> x
@@ -222,21 +223,21 @@ RemoteModel = exports.RemoteModel = sman.extend4000
   applyPermission: (type,attribute,value,realm,callback) ->
 
     model = @
-    if not attributePermissions = @permissions?[type][attribute] then return callback "Access Denied to#{attribute}: No Permission"
+    if not attributePermissions = @permissions?[type][attribute] then return callback "Access Denied to #{attribute}: No Permission"
 
     permissions = _.clone attributePermissions
 
     permission = permissions.pop()
 
-    checkperm = (permissions, callback) ->
+    checkperm = (permissions, cb) ->
       permissions.pop().match model, value, attribute, realm, (err,value) ->
-        if not err then return callback undefined, value
-        if not permissions.length then return callback err
-        return checkperm permissions, callback
+        if not err then return cb undefined, value
+        if not permissions.length then return cb err
+        return checkperm permissions, cb
 
     checkperm _.clone(attributePermissions), (err,value) ->
-      if err then return callback("Access Denied to #{attribute}: #{err}")
-      if value is undefined then return callback("Access Denied to #{attribute}: No Value")
+      if err then return callback "Access Denied to #{attribute}: #{err}"
+      if value is undefined then return callback "Access Denied to #{attribute}: No Value"
       callback undefined, value
 
   # looks for references to remote models and replaces them with object ids

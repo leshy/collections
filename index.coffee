@@ -39,46 +39,12 @@ ModelMixin = exports.ModelMixin = sman.extend4000
   modelFromData: (entry) ->
     new (@resolveModel(entry))(entry)
 
-  updateModel: (pattern, data, realm, callback) ->
-    queue = new helpers.queue size: 3
-    @findModels pattern, {}, ((err,model) ->
-      queue.push model.id, (callback) ->
-        model.update data, realm, (err,data) =>
-          if err then return callback err, data
-          model.flush (err,fdata) ->
-            if not _.keys(data).length then data = undefined
-            callback err,data),
-      ->
-        queue.done callback
-
   removeModel: (pattern, realm, callback) ->
     queue = new helpers.queue size: 3
     @findModels pattern, {},
     ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
     ((err,data) -> queue.done callback)
     
-  createModel: (data, realm, callback) ->
-    modelClass = @resolveModel data
-    newModel = new modelClass data
-    newModel.flush (err,data) -> helpers.cbc callback, err, newModel
-
-  createModel_: (data, realm, callback) ->
-    @eventAsync 'create', { data: data, realm: realm }, (err,subchanges={}) =>
-      if err then return callback err
-      subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
-
-      if data.id then return helpers.cbc callback, "can't specify id for new model"
-      
-      try
-        newModel = new (@resolveModel(data))
-      catch err
-        return helpers.cbc callback, err
-
-      newModel.update data, realm, (err,data) ->
-        if err then return helpers.cbc callback, err, data
-        newModel.set subchanges
-        newModel.flush (err,data) ->
-          helpers.cbc callback, err, _.extend(subchanges, data)
 
   findModels: (pattern,limits,callback,callbackDone) ->
     @find(pattern,limits,

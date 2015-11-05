@@ -66,6 +66,7 @@
       if ((!matchModel) && (!matchRealm) && (!matchValue)) {
         return callback(void 0, value);
       }
+      console.log('applying permission for', attribute, value);
       return async.series({
         matchRealm: (function(_this) {
           return function(callback) {
@@ -364,8 +365,8 @@
       if (strictPerm) {
         return async.series(helpers.dictMap(attrs, (function(_this) {
           return function(value, attribute) {
-            return function(callback) {
-              return _this.applyPermission(type, attribute, value, realm, callback);
+            return function(cb) {
+              return _this.applyPermission(type, attribute, value, realm, cb);
             };
           };
         })(this)), callback);
@@ -389,19 +390,19 @@
       var attributePermissions, checkperm, model, permission, permissions, ref1;
       model = this;
       if (!(attributePermissions = (ref1 = this.permissions) != null ? ref1[type][attribute] : void 0)) {
-        return callback("Access Denied to" + attribute + ": No Permission");
+        return callback("Access Denied to " + attribute + ": No Permission");
       }
       permissions = _.clone(attributePermissions);
       permission = permissions.pop();
-      checkperm = function(permissions, callback) {
+      checkperm = function(permissions, cb) {
         return permissions.pop().match(model, value, attribute, realm, function(err, value) {
           if (!err) {
-            return callback(void 0, value);
+            return cb(void 0, value);
           }
           if (!permissions.length) {
-            return callback(err);
+            return cb(err);
           }
-          return checkperm(permissions, callback);
+          return checkperm(permissions, cb);
         });
       };
       return checkperm(_.clone(attributePermissions), function(err, value) {
