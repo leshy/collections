@@ -66,7 +66,6 @@
       if ((!matchModel) && (!matchRealm) && (!matchValue)) {
         return callback(void 0, value);
       }
-      console.log('applying permission for', attribute, value);
       return async.series({
         matchRealm: (function(_this) {
           return function(callback) {
