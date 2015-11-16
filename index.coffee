@@ -1,6 +1,6 @@
 Backbone = require 'backbone4000'
 _ = require 'underscore'
-helpers = require 'helpers'
+h = require 'helpers'
 _.extend exports, require('./remotemodel')
 RemoteModel = exports.RemoteModel
 
@@ -40,7 +40,7 @@ ModelMixin = exports.ModelMixin = sman.extend4000
     new (@resolveModel(entry))(entry)
 
   removeModel: (pattern, realm, callback) ->
-    queue = new helpers.queue size: 3
+    queue = new h.queue size: 3
     @findModels pattern, {},
     ((err,model) -> queue.push model.id, (callback) -> model.remove callback),
     ((err,data) -> queue.done callback)
@@ -70,22 +70,22 @@ EventMixin = exports.EventMixin = Backbone.Model.extend4000
 #  remove: (pattern,callback) ->
 #    @_super 'remove', pattern, (err,data) =>
 #      if not err then @trigger 'remove', { pattern: pattern }
-#      helpers.cbc callback, err, data
+#      h.cbc callback, err, data
 
 #  update: (filter, update, callback) ->
 #    @eventAsync 'update', update, (err,subchanges={}) =>
 #      if err then return h.cbc callback, err        
 #      subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})      
-#      @_super 'update', _.extend(data, subchanges), (err,data) -> helpers.cbc callback, err, data
+#      @_super 'update', _.extend(data, subchanges), (err,data) -> h.cbc callback, err, data
 
   create: (data,callback) ->
     @eventAsync 'create', data, (err, subchanges={}) =>
       if err then return h.cbc callback, err
       subchanges = _.reduce(subchanges, ((all,data) -> _.extend all, data), {})
-      if data.id then return helpers.cbc callback, "can't specify id for new model"
+      if data.id then return h.cbc callback, "can't specify id for new model"
       
       @_super 'create', _.extend(data, subchanges), (err,data) =>
-        helpers.cbc callback, err, data
+        h.cbc callback, err, data
 
 # ReferenceMixin can be mixed into a RemoteCollection or Collection itself
 # it adds reference functionality
@@ -108,7 +108,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
       else
         @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
         @trigger 'resolve'
-        helpers.cbc callback, undefined, @
+        h.cbc callback, undefined, @
 
   find: (callback) -> 
     @collection.findModel { id: @get 'id' }, callback
@@ -122,7 +122,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
 
   remove: (callback) ->
     @del()
-    if @id then @collection.remove { id: id }, helpers.cb callback else helpers.cbc callback
+    if @id then @collection.remove { id: id }, h.cb callback else h.cbc callback
 
   reference: ->
     ref = _.extend {}, @attributes # clone
@@ -171,7 +171,7 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
     uuid = JSON.stringify { name: @name(), args: args, limits: limits }
     @_super( 'find', args, limits,
       (err,data) => callback err, data, uuid
-      () => helpers.cbc callbackDone, undefined, undefined, uuid
+      () => h.cbc callbackDone, undefined, undefined, uuid
     )
 
   findOne: (args,callback) ->
@@ -180,7 +180,7 @@ RequestIdMixin = exports.RequestIdMixin = Backbone.Model.extend4000
 
 
 CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
-  timeout: helpers.Minute
+  timeout: h.Minute
 
   initialize: ->
     @cache = {}
@@ -192,7 +192,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
     name = new Date().getTime()
 
-    @timeouts[name] = helpers.wait timeout, =>
+    @timeouts[name] = h.wait timeout, =>
       if @timeouts[name] then delete @timeouts[name]
       if @cache[uuid] then delete @cache[uuid]
 
@@ -221,7 +221,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
     uuid = JSON.stringify { name: @name(), args: args, limits: limits }
     if loadCache = @cache[uuid]
       _.map loadCache, (data) -> callback undefined, data, uuid
-      helpers.cbc callbackDone, undefined, undefined, uuid, loadCache
+      h.cbc callbackDone, undefined, undefined, uuid, loadCache
       return uuid
 
     cache = []
@@ -237,7 +237,7 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
 
       (err, done, uuid) =>
         reqCache = @addToCache uuid, cache
-        helpers.cbc callbackDone, err, done, uuid, reqCache
+        h.cbc callbackDone, err, done, uuid, reqCache
 
       )
     return uuid
