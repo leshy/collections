@@ -318,6 +318,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
           @render {}, (err,data) => if not err then @collection.trigger 'create', data
           @collection.trigger 'createModel', @
+          @collection.trigger 'post_create', @
           @eventAsync 'post_create', @
 
         else

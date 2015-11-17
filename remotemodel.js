@@ -535,6 +535,7 @@
                   }
                 });
                 _this.collection.trigger('createModel', _this);
+                _this.collection.trigger('post_create', _this);
                 return _this.eventAsync('post_create', _this);
               });
             } else {
