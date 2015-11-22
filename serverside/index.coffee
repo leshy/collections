@@ -11,7 +11,6 @@ Backbone = require 'backbone4000'
 helpers = require 'helpers'
 _ = require 'underscore'
 
-
 exports.EncryptedMixin = EncryptedMixin = Backbone.Model.extend4000
 
   patternIn: (pattern) ->

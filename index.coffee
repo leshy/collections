@@ -101,6 +101,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
       @collection = collection
       @unset 'collection'
 
+  maybeResolve: (callback) -> @resolve callback
 
   resolve: (callback) ->
     @collection.findOne {id: @get 'id'}, (err,entry) =>

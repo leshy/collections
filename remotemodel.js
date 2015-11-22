@@ -585,6 +585,9 @@
     unsubscribe: function() {
       return true;
     },
+    maybeResolve: function(cb) {
+      return cb.call(this, void 0, this);
+    },
     getResolve: function(attribute, cb) {
       var model;
       model = this.get(attribute);

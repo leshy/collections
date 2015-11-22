@@ -148,6 +148,9 @@
         };
       })(this));
     },
+    maybeResolve: function(callback) {
+      return this.resolve(callback);
+    },
     resolve: function(callback) {
       return this.collection.findOne({
         id: this.get('id')

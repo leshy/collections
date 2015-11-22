@@ -350,6 +350,8 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
   unsubscribe: -> true
 
+  maybeResolve: (cb) -> cb.call @, undefined, @
+
   getResolve: (attribute, cb) ->
     model = @get attribute
     if model?.resolve then model.resolve cb
@@ -360,7 +362,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000
     _.each models, (model) ->
       if model?.resolve then model.resolve cb
       else _.defer -> helpers.cbc cb, undefined, model
-
 
   remove: (callback) ->
     @del()
