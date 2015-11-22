@@ -161,6 +161,7 @@
           } else {
             if (!_this.morph) {
               console.error("I DONT HAVE MORPH", _this);
+              return h.cbc(callback, "no morph");
             }
             _this.morph(_this.collection.resolveModel(entry), _.extend(_this.attributes, entry));
             _this.trigger('resolve');
