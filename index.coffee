@@ -107,6 +107,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
     @collection.findOne { id: @get 'id' }, (err, entry) =>
       if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
       else
+        if not @morph return h.wait 100, => h.cbc callback, undefined, @
         @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
         @trigger 'resolve'
         h.cbc callback, undefined, @

@@ -159,6 +159,11 @@
           if (!entry) {
             return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + _this.collection.get('name'));
           } else {
+            if (!_this.morph) {
+              return h.wait(100, function() {
+                return h.cbc(callback, void 0, _this);
+              });
+            }
             _this.morph(_this.collection.resolveModel(entry), _.extend(_this.attributes, entry));
             _this.trigger('resolve');
             return h.cbc(callback, void 0, _this);
