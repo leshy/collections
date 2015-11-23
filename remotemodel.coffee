@@ -359,9 +359,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
   mapResolve: (attribute, cb) ->
     models = @get attribute
-    _.each models, (model) ->
-      if model?.resolve then model.resolve cb
-      else _.defer -> helpers.cbc cb, undefined, model
+    _.each models, (model) -> model.maybeResolve cb
 
   remove: (callback) ->
     @del()

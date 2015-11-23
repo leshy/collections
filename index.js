@@ -159,10 +159,6 @@
           if (!entry) {
             return callback('unable to resolve reference to ' + _this.get('id') + ' at ' + _this.collection.get('name'));
           } else {
-            if (!_this.morph) {
-              console.error("I DONT HAVE MORPH", _this);
-              return h.cbc(callback, "no morph");
-            }
             _this.morph(_this.collection.resolveModel(entry), _.extend(_this.attributes, entry));
             _this.trigger('resolve');
             return h.cbc(callback, void 0, _this);

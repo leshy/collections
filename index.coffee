@@ -104,13 +104,9 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
   maybeResolve: (callback) -> @resolve callback
 
   resolve: (callback) ->
-    @collection.findOne {id: @get 'id'}, (err,entry) =>
+    @collection.findOne { id: @get 'id' }, (err, entry) =>
       if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
       else
-        if not @morph
-          console.error "I DONT HAVE MORPH", @;
-          return h.cbc callback, "no morph"
-          
         @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
         @trigger 'resolve'
         h.cbc callback, undefined, @
@@ -118,7 +114,7 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
   find: (callback) -> 
     @collection.findModel { id: @get 'id' }, callback
     
-  morph: (myclass,mydata) ->
+  morph: (myclass, mydata) ->
     @__proto__ = myclass::
     _.extend @attributes, mydata
     @initialize()

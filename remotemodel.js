@@ -603,13 +603,7 @@
       var models;
       models = this.get(attribute);
       return _.each(models, function(model) {
-        if (model != null ? model.resolve : void 0) {
-          return model.resolve(cb);
-        } else {
-          return _.defer(function() {
-            return helpers.cbc(cb, void 0, model);
-          });
-        }
+        return model.maybeResolve(cb);
       });
     },
     remove: function(callback) {
