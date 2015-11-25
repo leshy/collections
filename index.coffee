@@ -104,13 +104,17 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
   maybeResolve: (callback) -> @resolve callback
 
   resolve: (callback) ->
-    @collection.findOne { id: @get 'id' }, (err, entry) =>
-      if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
-      else
-        if not @morph return h.wait 100, => h.cbc callback, undefined, @
-        @morph @collection.resolveModel(entry), _.extend(@attributes, entry)
-        @trigger 'resolve'
-        h.cbc callback, undefined, @
+    if @_resolving then @once 'resolve', => _.defer => h.cbc callback, undefined, @
+    else
+      @_resolving = true
+      @collection.findOne { id: @get 'id' }, (err, entry) =>
+        if not entry then callback('unable to resolve reference to ' + @get('id') + ' at ' + @collection.get('name'))
+        else
+          modelClass = @collection.resolveModel(entry)
+          #if not @morph return h.wait 100, => h.cbc callback, undefined, @
+          @morph modelClass, _.extend(@attributes, entry)
+          @trigger 'resolve'
+          h.cbc callback, undefined, @
 
   find: (callback) -> 
     @collection.findModel { id: @get 'id' }, callback
@@ -138,10 +142,12 @@ UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend400
 
 
 ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
+  UnresolvedRemoteModel: UnresolvedRemoteModel
+  
   initialize: ->
     @collectionDict = exports.collectionDict
     @when 'name', (name) => @collectionDict[name] = @
-
+    
   getcollection: (name) -> @collectionDict[name]
 
   # will translate a model to its reference its found in find arguments
@@ -163,7 +169,7 @@ ReferenceMixin = exports.ReferenceMixin = Backbone.Model.extend4000
       
     delete data._c
     
-    new UnresolvedRemoteModel _.extend data, collection: @
+    new @UnresolvedRemoteModel _.extend data, collection: @
 
   name: -> @get 'name'
 
@@ -262,19 +268,19 @@ LiveRemoteModel = RemoteModel.extend4000
 
   initialize: ->
     @settings = @collection.settings.model or {}
-    #console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
+#    console.log ">>>> liveModel: #{@collection.name()} #{@id} wakeup"
 
   gCollectForce: ->
     @trigger 'gCollectForce'
     @trigger 'gCollect'
 
   gCollect: ->
-    #console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
+#    console.log ">>>> liveModel: #{@collection.name()} #{@id} -- #{@references - 1}"
     if not --@references then @trigger 'gCollect'
 
   newRef: ->
     @references++
-    #console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
+#    console.log ">>>> liveModel: #{@collection.name()} #{@id} ++ #{@references}"
     @
 
   flush: (args...)->
@@ -287,18 +293,23 @@ LiveRemoteModel = RemoteModel.extend4000
     model = @collection.hold @
     callback.call model, -> model.gCollect()
 
+LiveUnresolvedRemoteModel = UnresolvedRemoteModel.extend4000
+  resolve: (callback) ->
+    if liveModel = @collection.liveModels[@id] then _.defer -> callback undefined, liveModel
+    else UnresolvedRemoteModel::resolve.call @, callback
+
 LiveModelMixin = exports.LiveModelMixin = Backbone.Model.extend4000
   initialize: -> @liveModels = {}
   modelClass: LiveRemoteModel
-
+  UnresolvedRemoteModel: LiveUnresolvedRemoteModel
+  
+  
   hold: (model) ->
     if liveModel = @liveModels[model.id] then liveModel.newRef()
     else
-      #console.log ">>>> liveModel: #{@name()} #{model.id} -- HOLD"
-
+#      console.log ">>>> liveModel: #{@name()} #{model.id} -- HOLD"
       liveModel = @liveModels[model.id] = model.newRef()
-      liveModel.once 'gCollect', =>
-        delete @liveModels[model.id]
+      liveModel.once 'gCollect', => delete @liveModels[model.id]
       liveModel.trigger 'live'
       liveModel
   
