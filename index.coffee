@@ -93,7 +93,7 @@ EventMixin = exports.EventMixin = Backbone.Model.extend4000
 exports.collectionDict = {} # global dict holding all collections.. nasty but required to resolve references, shouldn't be global in theory but I can't invision the need to communicate multiple databases with same collection names right now.
 
 UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000    
-  toString: -> "unresolved model #{@id} of collection #{@collection.name()}"
+  toString: -> "unresolved model #{@id} of collection #{@collection?name?()}"
   
   initialize: ->
     @when 'id', (id) => @id = id

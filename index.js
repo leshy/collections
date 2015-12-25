@@ -133,7 +133,7 @@
 
   UnresolvedRemoteModel = exports.UnresolvedRemoteModel = Backbone.Model.extend4000({
     toString: function() {
-      return "unresolved model " + this.id + " of collection " + (this.collection.name());
+      return "unresolved model " + this.id + " of collection " + (typeof this.collection === "function" ? this.collection(typeof name === "function" ? name() : void 0) : void 0);
     },
     initialize: function() {
       this.when('id', (function(_this) {

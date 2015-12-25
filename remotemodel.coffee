@@ -1,6 +1,6 @@
 Backbone = require 'backbone4000'
 _ = require 'underscore'
-helpers = require 'helpers'
+h = require 'helpers'
 Validator = require 'validator2-extras'; v = Validator.v; Select = Validator.Select
 async = require 'async'
 collections = require './index'
@@ -92,7 +92,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
     @importReferences @attributes, (err,data) => @attributes = data
 
     # if we haven't been saved yet (no id), we want to flush all our attributes when flush is called..
-    if @get 'id' then @changes = {} else @changes = helpers.dictMap(@attributes, -> true)
+    if @get 'id' then @changes = {} else @changes = h.dictMap(@attributes, -> true)
 
   refresh: (callback) ->
     @collection.findModel {id: @id}, (err,model) ->
@@ -136,10 +136,10 @@ RemoteModel = exports.RemoteModel = sman.extend4000
     #spaces = ""
     #_.times depth, -> spaces+= " "
     # call changef on the target, return results
-    _check = (target,callback) -> helpers.forceCallback changef, target, callback
+    _check = (target,callback) -> h.forceCallback changef, target, callback
     # recursively search through an iterable target
     _digtarget = (target,callback) =>
-      bucket = new helpers.parallelBucket()
+      bucket = new h.parallelBucket()
 
       for key of target
         if target[key]
@@ -167,7 +167,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
         @set data, { silent: true }
 
-        helpers.dictMap data, (value,key) =>
+        h.dictMap data, (value,key) =>
           @trigger 'remotechange:' + key, @, value
           @trigger 'anychange:' + key, @, value
 
@@ -181,7 +181,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
   localChangePropagade: (model,data) ->
     change = model.changedAttributes()
     delete change.id
-    _.extend @changes, helpers.dictMap(change, -> true)
+    _.extend @changes, h.dictMap(change, -> true)
     # flush call would go here if it were throtteled properly and if autoflush is enabled
 
   # mark some attributes as dirty (to be saved)
@@ -206,17 +206,17 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
   update: (data, realm, callback) ->
     @applyPermissions 'write', data, realm, (err,data) =>
-      if err then return helpers.cbc callback, err, data
+      if err then return h.cbc callback, err, data
       @set data
-      helpers.cbc callback, err, data
+      h.cbc callback, err, data
 
   applyPermissions: (type, attrs, realm, callback, strictPerm=true) ->
     if strictPerm
-      async.series helpers.dictMap(attrs, (value, attribute) => (cb) =>
+      async.series h.dictMap(attrs, (value, attribute) => (cb) =>
         @applyPermission(type,attribute, value, realm, cb )), callback
     else
-      async.series helpers.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type, attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
-        callback undefined, helpers.dictMap data, (x) -> x
+      async.series h.dictMap(attrs, (value, attribute) => (callback) => @applyPermission(type, attribute, value, realm, (err,data) -> callback null, data)), (err,data) ->
+        callback undefined, h.dictMap data, (x) -> x
 
   # will find a first permission that matches this realm for this attribute and return it
   applyPermission: (type,attribute,value,realm,callback) ->
@@ -249,14 +249,14 @@ RemoteModel = exports.RemoteModel = sman.extend4000
         if id = value.get('id') then callback undefined, value.reference(id)
         else # if not, flush it, and then create a proper reference
           value.flush (err,id) ->
-          if err then helpers.cbc callback, err,id
-          else helpers.cbc callback, undefined, value.reference(id)
+          if err then h.cbc callback, err,id
+          else h.cbc callback, undefined, value.reference(id)
         return undefined
       else if value instanceof collections.UnresolvedRemoteModel
         value.reference()
       else
         if typeof value is 'object' and value.constructor isnt Object then throw "something weird is in my attributes"
-        value # we can also return a value, and not call the callback, as this function gets wrapped into helpers.forceCallback
+        value # we can also return a value, and not call the callback, as this function gets wrapped into h.forceCallback
     @asyncDepthfirst _matchf, callback, true, false, data
 
   importReferences: (data,callback) ->
@@ -280,11 +280,10 @@ RemoteModel = exports.RemoteModel = sman.extend4000
       return undefined
     @asyncDepthfirst _matchf, callback, true, true, data
 
-  # simplified for now, will reintroduce when done
-  # with model syncing
-  # throttle decorator makes sure that we can apply bunch of changes in a series to an object, but the system requests a sync only once.
-  # flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
-  flush: (callback) -> @flushnow(callback)
+  # throttle flushing
+  flush: (cb) ->
+    if not @_flush then @_flush = h.wrap.throttle { time: 25 }, (cb) => @flushnow cb
+    @_flush cb
 
   flushnow: (callback) ->
     changes = {}
@@ -294,7 +293,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
     if @settings.storePermissions
       @applyPermissions 'write', changes, exports.StoreRealm, (err,data) =>
-        if not err then @set(data) else return helpers.cbc callback, err
+        if not err then @set(data) else return h.cbc callback, err
 
     continue1 = (err,subchanges) =>
       if err? then return callback err
@@ -303,18 +302,18 @@ RemoteModel = exports.RemoteModel = sman.extend4000
       _.extend changes, subchanges
 
       @exportReferences changes, (err, changes) =>
-        if helpers.isEmpty(changes) then return helpers.cbc callback
+        if h.isEmpty(changes) then return h.cbc callback
 
         if not id = @get 'id' then @collection.create changes, (err,data) =>
           if err
             @changes = changesBak
-            return helpers.cbc callback, err
+            return h.cbc callback, err
 
           _.extend @attributes, data
 
           @trigger 'change:id', @, data.id # when 'id' should trigger
 
-          helpers.cbc callback, err, @attributes
+          h.cbc callback, err, @attributes
 
           @render {}, (err,data) => if not err then @collection.trigger 'create', data
           @collection.trigger 'createModel', @
@@ -322,15 +321,15 @@ RemoteModel = exports.RemoteModel = sman.extend4000
           @eventAsync 'post_create', @
 
         else
-          #console.log 'calling update',changes
+          console.log 'calling update',changes
           @collection.update { id: id }, changes, (err,data) =>
             if err then @changes = changesBak
             else
               @event 'post_update', changes
               @render {}, changes, (err,data) =>
-                if not err then @collection.trigger 'update', _.extend({id: id}, data)
+                if not err and _.keys(data).length then @collection.trigger 'update', _.extend({id: id}, data)
 
-            return helpers.cbc callback, err, data
+            return h.cbc callback, err, data
 
     if @get 'id' then @eventAsync 'update', changes, continue1
     else @eventAsync 'create', changes, continue1
@@ -355,7 +354,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
   getResolve: (attribute, cb) ->
     model = @get attribute
     if model?.resolve then model.resolve cb
-    else _.defer -> helpers.cbc cb, undefined, model
+    else _.defer -> h.cbc cb, undefined, model
 
   mapResolve: (attribute, cb) ->
     models = @get attribute
@@ -363,6 +362,6 @@ RemoteModel = exports.RemoteModel = sman.extend4000
 
   remove: (callback) ->
     @del()
-    if not id = @get 'id' then return helpers.cbc callback
+    if not id = @get 'id' then return h.cbc callback
     @collection.remove { id: id }, callback
     @collection.trigger 'remove', id: id
