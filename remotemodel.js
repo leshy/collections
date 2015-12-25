@@ -548,7 +548,6 @@
                 return _this.eventAsync('post_create', _this);
               });
             } else {
-              console.log('calling update', changes);
               return _this.collection.update({
                 id: id
               }, changes, function(err, data) {

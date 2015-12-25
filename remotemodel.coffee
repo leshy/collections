@@ -321,7 +321,7 @@ RemoteModel = exports.RemoteModel = sman.extend4000
           @eventAsync 'post_create', @
 
         else
-          console.log 'calling update',changes
+#          console.log 'calling update',changes
           @collection.update { id: id }, changes, (err,data) =>
             if err then @changes = changesBak
             else
