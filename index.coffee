@@ -225,10 +225,8 @@ CachingMixin = exports.CachingMixin = Backbone.Model.extend4000
                 reqCache = @addToCache uuid, cache
                 helpers.cbc callbackDone, err, done, uuid, reqCache
 
-            )
-            
+            )            
         return uuid
-                
 
     update: (filter,update,callback) ->
         @clearCache()
