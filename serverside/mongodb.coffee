@@ -1,4 +1,5 @@
-BSON = require('mongodb').BSONPure
+#autocompile
+mongodb = require('mongodb')
 Validator = require 'validator2-extras'; v = Validator.v; Select = Validator.Select
 Backbone = require 'backbone4000'
 helpers = require 'helpers'
@@ -23,7 +24,7 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
     patternIn: (pattern) ->
         pattern = _.extend {},pattern
         if pattern.id? then pattern._id = pattern.id; delete pattern.id
-        if pattern._id?.constructor is String then pattern._id = new BSON.ObjectID(pattern._id)
+        if pattern._id?.constructor is String then pattern._id = new mongodb.ObjectID(pattern._id)
         pattern
         
     patternOut: (pattern) ->
