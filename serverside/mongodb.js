@@ -41,12 +41,15 @@
     create: function(entry, callback) {
       entry = _.extend({}, entry);
       return this.collection.insert(entry, function(err, data) {
-        if ((data != null ? data[0]._id : void 0)) {
-          data = {
-            id: String(data[0]._id)
-          };
+        var ops;
+        ops = data.ops[0];
+        if (ops._id) {
+          return callback(void 0, {
+            id: String(ops._id)
+          });
+        } else {
+          return callback("didn't create");
         }
-        return callback(err, data);
       });
     },
     patternIn: function(pattern) {

@@ -16,9 +16,10 @@ MongoCollection = exports.MongoCollection = Backbone.Model.extend4000
     create: (entry,callback) ->
         entry = _.extend({}, entry) # mongodb api will automatically append _.id to this dict, I want to avoid this..
         @collection.insert(entry,(err,data) ->
-            if (data?[0]._id)
-                data = { id: String(data[0]._id) };
-            callback err, data)
+          ops = data.ops[ 0 ]
+          if (ops._id) then callback undefined, { id: String(ops._id) }
+          else callback "didn't create")
+            
         
     # replaces a potential string id with BSON.ObjectID
     patternIn: (pattern) ->
