@@ -1,21 +1,72 @@
 {
-  "name": "collections",
-  "version": "0.0.0",
-  "description": "",
+  "_args": [
+    [
+      "collections@git://github.com/leshy/collections.git",
+      "/home/battlecat/lobby"
+    ]
+  ],
+  "_from": "git://github.com/leshy/collections.git",
+  "_id": "collections@0.0.0",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/collections",
+  "_phantomChildren": {},
+  "_requested": {
+    "hosted": {
+      "directUrl": "https://raw.githubusercontent.com/leshy/collections/master/package.json",
+      "gitUrl": "git://github.com/leshy/collections.git",
+      "httpsUrl": "git+https://github.com/leshy/collections.git",
+      "shortcut": "github:leshy/collections",
+      "ssh": "git@github.com:leshy/collections.git",
+      "sshUrl": "git+ssh://git@github.com/leshy/collections.git",
+      "type": "github"
+    },
+    "name": "collections",
+    "raw": "collections@git://github.com/leshy/collections.git",
+    "rawSpec": "git://github.com/leshy/collections.git",
+    "scope": null,
+    "spec": "git://github.com/leshy/collections.git",
+    "type": "hosted"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "git://github.com/leshy/collections.git#815d9e603ebc5679a8f026589b8f0889127ab75a",
+  "_shasum": "071ca07d2776558bb1bb8e3f8dc0af9eb6c5ff39",
+  "_shrinkwrap": null,
+  "_spec": "collections@git://github.com/leshy/collections.git",
+  "_where": "/home/battlecat/lobby",
+  "author": {
+    "name": "lesh"
+  },
+  "bugs": {
+    "url": "https://github.com/leshy/collections/issues"
+  },
   "dependencies": {
-    "backbone4000": "git://github.com/leshy/backbone4000.git#waveme",
-    "decorators2": "git://github.com/leshy/nodejs-decorators2.git",
+    "async": "^2.1.5",
+    "backbone4000": "git://github.com/leshy/backbone4000.git",
     "helpers": "git://github.com/leshy/nodejs-helpers.git",
-    "mongodb": "^2.2.10",
+    "mongodb": "^1.2.7",
     "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
-    "underscore": "underscore >= 1.3.x",
+    "underscore": "^1.8.3",
     "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git"
   },
+  "description": "collections ====",
+  "devDependencies": {},
+  "gitHead": "815d9e603ebc5679a8f026589b8f0889127ab75a",
+  "homepage": "https://github.com/leshy/collections#readme",
+  "license": "BSD",
   "main": "index.js",
+  "name": "collections",
+  "optionalDependencies": {},
+  "readme": "collections\n====\n\nAbstraction layer between the database and a model system",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/leshy/collections.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "",
-  "author": "lesh",
-  "license": "BSD"
+  "version": "0.0.0"
 }
