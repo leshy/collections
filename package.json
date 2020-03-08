@@ -3,19 +3,25 @@
   "version": "0.0.0",
   "description": "",
   "dependencies": {
-    "backbone4000": "git://github.com/leshy/backbone4000.git#waveme",
-    "decorators2": "git://github.com/leshy/nodejs-decorators2.git",
-    "helpers": "git://github.com/leshy/nodejs-helpers.git",
-    "mongodb": "^2.2.10",
-    "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
     "underscore": "underscore >= 1.3.x",
-    "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git"
+    "backbone4000": "git://github.com/leshy/backbone4000.git",
+    "helpers": "git://github.com/leshy/nodejs-helpers.git",
+    "validator2-extras": "git://github.com/leshy/nodejs-validator2-extras.git",
+    "subscriptionman2": "git://github.com/leshy/nodejs-subscriptionman2.git",
+    "decorators2": "git://github.com/leshy/nodejs-decorators2.git"
   },
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "",
-  "author": "lesh",
-  "license": "BSD"
+  "author": {
+    "name": "lesh"
+  },
+  "license": "BSD",
+  "readme": "ERROR: No README data found!",
+  "_id": "collections@0.0.0",
+  "_shasum": "ff1f01a8048c9dbfe596c303990d963358f09c7d",
+  "_resolved": "git://github.com/leshy/collections.git#43d1b02a50363c2f37b3b5a7bd698dca2f2d75fb",
+  "_from": "collections@git://github.com/leshy/collections.git"
 }

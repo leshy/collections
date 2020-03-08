@@ -67,16 +67,16 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         @when 'id', (id) =>
             @id = id
             if exports.settings.autosubscribe then @subscribeModel id
-                
+
+                                    
         @on 'change', (model,data) =>
             @localChangePropagade(model,data)
             @trigger 'anychange'
             #@trigger 'anychange:... ' blah, later
-
-        # convert all references to actual unresolvedRemoteModels (see index.coffee)            
+            
         @importReferences @attributes, (err,data) => @attributes = data
 
-        # if we haven't been saved yet (no id), we want to flush all our attributes when flush is called..
+        # if we haven't been saved yet, we want to flush all our attributes when flush is called..
         if @get 'id' then @changes = {} else @changes = helpers.dictMap(@attributes, -> true)
 
     subscribeModel: (id) ->
@@ -156,11 +156,12 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
         # flush call would go here if it were throtteled properly and if autoflush is enabled
 
     # mark some attributes as dirty (to be saved)
-    # needs to be done explicitly when changing dictionaries or arrays in attributes as change() won't catch this
+    # needs to be done explicitly when changing dictionaries or arrays in attributes as change() won't catch that
     # or you can call set _clone(property)
     dirty: (attribute) -> @changes[attribute] = true
     touch: (attribute) -> @changes[attribute] = true
 
+    # I need a permissions implementation here.. this calls a remote function
     localCallPropagade: (name,args,callback) ->
         @collection.fcall name, args, { id: @id }, callback
         
@@ -221,12 +222,12 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     importReferences: (data,callback) ->
         _import = (reference) -> true # instantiate an unresolved reference, or the propper model, with an unresolved state.
         
+        refcheck = v { _r: "String", _c: "String" }
+        
         _resolve_reference = (ref) =>
             if not targetcollection = @collection.getcollection(ref._c) then throw 'unknown collection "' + ref._c + '"'
             else targetcollection.unresolved(ref._r)
-        
-        refcheck = v { _r: "String", _c: "String" }
-        
+
         _matchf = (value,callback) ->
             try 
                 refcheck.feed value, (err,data) ->
@@ -242,7 +243,7 @@ RemoteModel = exports.RemoteModel = Validator.ValidatedModel.extend4000 sman,
     # simplified for now, will reintroduce when done
     # with model syncing
     # throttle decorator makes sure that we can apply bunch of changes in a series to an object, but the system requests a sync only once.
-    # flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
+    #flush: decorate( decorators.MakeDecorator_Throttle({ throttletime: 1 }), (callback) -> @flushnow(callback) )
     flush: (callback) ->
         @flushnow(callback)
 

@@ -393,6 +393,10 @@
       _import = function(reference) {
         return true;
       };
+      refcheck = v({
+        _r: "String",
+        _c: "String"
+      });
       _resolve_reference = (function(_this) {
         return function(ref) {
           var targetcollection;
@@ -403,10 +407,6 @@
           }
         };
       })(this);
-      refcheck = v({
-        _r: "String",
-        _c: "String"
-      });
       _matchf = function(value, callback) {
         var error;
         try {
